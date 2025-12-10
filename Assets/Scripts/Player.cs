@@ -2,6 +2,7 @@ using Fusion;
 using Fusion.Addons.KCC;
 using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public enum AbilityMode : byte
 {
@@ -64,6 +65,9 @@ public class Player : NetworkBehaviour
     private Vector2 baseLookRotation;
     private float glideDrain;
 
+    private float _yawVelocity = 0f;
+    private Vector3 _moveDirection;
+
     public override void Spawned()
     {
         glideDrain = 1f / (maxGlideTime * Runner.TickRate);
@@ -83,6 +87,40 @@ public class Player : NetworkBehaviour
         }
     }
 
+    // Ќовый метод дл€ получени€ позиции курсора в мировых координатах
+    private Vector3 GetMouseWorldPosition()
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        Plane groundPlane = new Plane(Vector3.up, transform.position.y);
+
+        float distance;
+        if (groundPlane.Raycast(ray, out distance))
+        {
+            return ray.GetPoint(distance);
+        }
+
+        return ray.GetPoint(100f);
+    }
+
+    private void UpdateCursorRotation()
+    {
+        if (!HasInputAuthority) return;
+
+        Vector3 mouseWorldPos = GetMouseWorldPosition();
+        Vector3 direction = mouseWorldPos - transform.position;
+        direction.y = 0f;
+
+        if (direction != Vector3.zero)
+        {
+            float targetYaw = Vector3.SignedAngle(Vector3.forward, direction, Vector3.up);
+            float currentYaw = kcc.GetLookRotation().y;
+
+            float deltaYaw = Mathf.SmoothDampAngle(currentYaw, targetYaw, ref _yawVelocity, 0.01f);
+            kcc.SetLookRotation(kcc.GetLookRotation().x, deltaYaw);
+        }
+    }
+
+
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
         if (HasInputAuthority)
@@ -99,7 +137,10 @@ public class Player : NetworkBehaviour
             SelectedAbility = input.AbilityMode;
             CheckGlide(input);
             CheckJump(input);
-            kcc.AddLookRotation(input.LookDelta * lookSensitivity, -maxPitch, maxPitch);
+
+            // ќбновл€ем поворот через курсор
+            UpdateCursorRotation();
+
             UpdateCamTarget();
             Vector3 lookDirection = camTarget.forward;
 
@@ -109,6 +150,7 @@ public class Player : NetworkBehaviour
             if (IsGliding && !CanGlide)
                 ToggleGlide(false);
 
+            // ќбновл€ем направление движени€
             SetInputDirection(input);
             CheckAbilities(input, lookDirection);
             PreviousButtons = input.Buttons;
@@ -154,24 +196,46 @@ public class Player : NetworkBehaviour
         }
     }
 
+    /*   private void SetInputDirection(NetInput input)
+       {
+           Vector3 worldDirection;
+           if (IsGliding)
+           {
+               GlideCharge = Mathf.Max(0f, GlideCharge - glideDrain);
+               worldDirection = kcc.Data.TransformDirection;
+           }
+           else
+               worldDirection = kcc.FixedData.TransformRotation * input.Direction.X0Y();
+
+           kcc.SetInputDirection(worldDirection);
+       }*/
+
     private void SetInputDirection(NetInput input)
     {
-        Vector3 worldDirection;
+        _moveDirection = new Vector3(input.Direction.x, 0f, input.Direction.y);
+
         if (IsGliding)
         {
             GlideCharge = Mathf.Max(0f, GlideCharge - glideDrain);
-            worldDirection = kcc.Data.TransformDirection;
+            kcc.SetInputDirection(kcc.Data.TransformDirection);
         }
         else
-            worldDirection = kcc.FixedData.TransformRotation * input.Direction.X0Y();
-
-        kcc.SetInputDirection(worldDirection);
+        {
+            // “еперь движение происходит по глобальным ос€м
+            kcc.SetInputDirection(_moveDirection);
+        }
     }
 
     private void UpdateCamTarget()
     {
-        camTarget.localRotation = Quaternion.Euler(kcc.GetLookRotation().x, 0f, 0f);
+        // ќбновл€ем цель камеры с учетом нового поворота
+        camTarget.localRotation = Quaternion.Euler(
+            kcc.GetLookRotation().x,
+            kcc.GetLookRotation().y,
+            0f
+        );
     }
+
 
     private void CheckAbilities(NetInput input, Vector3 lookDirection)
     {

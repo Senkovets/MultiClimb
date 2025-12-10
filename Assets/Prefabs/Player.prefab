@@ -879,14 +879,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcb9d6d5184a3ae4b87b744535bf511b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  modelParts:
-  - {fileID: 2616948471462261466}
-  - {fileID: 8516833619549204640}
-  - {fileID: 3262963577943077575}
-  - {fileID: 8749461424908778980}
-  - {fileID: 3208298448284846645}
-  - {fileID: 5271234934346940701}
-  - {fileID: 8799478614307836382}
+  modelParts: []
   lagCompLayers:
     serializedVersion: 2
     m_Bits: 1
@@ -1082,12 +1075,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bb08afd6decfb204eab8e99d6167b74f, type: 3}
---- !u!23 &3262963577943077575 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: bb08afd6decfb204eab8e99d6167b74f,
-    type: 3}
-  m_PrefabInstance: {fileID: 4218172695574425155}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &4396442094903380392 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: bb08afd6decfb204eab8e99d6167b74f,

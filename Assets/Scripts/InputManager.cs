@@ -42,8 +42,8 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         }
 
         // Accumulate input only if the cursor is locked.
-        if (Cursor.lockState != CursorLockMode.Locked)
-            return;
+        /*if (Cursor.lockState != CursorLockMode.Locked)
+            return;*/
 
         NetworkButtons buttons = default;
 
@@ -128,8 +128,8 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     {
         if (player == runner.LocalPlayer)
         {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            /*Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;*/
         }
     }
 
