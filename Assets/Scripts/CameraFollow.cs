@@ -25,9 +25,15 @@ public class CameraFollow : MonoBehaviour
     private Transform target;
     private Player player;
 
+    public Texture2D cursorTexture;
+
     private void Awake()
     {
         Singleton = this;
+
+        Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.Auto);
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
     }
 
     private void OnDestroy()

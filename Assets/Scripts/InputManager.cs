@@ -36,8 +36,8 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             }
             else
             {
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
+             /*   Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;*/
             }
         }
 
