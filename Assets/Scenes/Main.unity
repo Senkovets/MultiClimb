@@ -136,6 +136,8 @@ GameObject:
   - component: {fileID: 330585547}
   - component: {fileID: 330585548}
   - component: {fileID: 330585549}
+  - component: {fileID: 330585551}
+  - component: {fileID: 330585550}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -273,8 +275,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3de466158907314cb767e04c1443cf7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  highlighter: {fileID: 330585549}
-  cursorTexture: {fileID: 2800000, guid: 8958b450dee843f41a091a734ed43ccd, type: 3}
+  target: {fileID: 0}
+  distance: 6
+  height: 8
+  lookAtHeight: 1
+  mouseSensitivity: 2
+  recoilRecoverySpeed: 5
 --- !u!114 &330585549
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -287,6 +293,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31699c645496acc4cb61acb59486856b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &330585550
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb8433a15cbb9740b8c7b3fa52adcaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  crosshairColor: {r: 1, g: 0.16666657, b: 0.16666657, a: 1}
+  crosshairSize: 10
+  crosshairThickness: 2
+  baseGap: 5
+  scatterMultiplier: 5
+--- !u!114 &330585551
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb8433a15cbb9740b8c7b3fa52adcaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  crosshairColor: {r: 1, g: 1, b: 1, a: 1}
+  crosshairSize: 10
+  crosshairThickness: 2
+  baseGap: 5
+  scatterMultiplier: 5
 --- !u!1001 &399997349
 PrefabInstance:
   m_ObjectHideFlags: 0

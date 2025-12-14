@@ -31,7 +31,9 @@ public class CameraFollow : MonoBehaviour
     {
         Singleton = this;
 
-        Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.Auto);
+        if(cursorTexture != null)
+            Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.Auto);
+
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
     }

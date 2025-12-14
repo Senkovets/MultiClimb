@@ -1,8 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.IO.Pipes;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class GunController : MonoBehaviour
 {
@@ -179,13 +177,6 @@ public class GunController : MonoBehaviour
         yield return new WaitForSeconds(reloadTime);
         currentAmmo = maxAmmo;
         isReloading = false;
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        // Визуализация дальности стрельбы в редакторе
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawLine(gunMuzzle.position, gunMuzzle.forward);
     }
 
     public void SetGunMuzzle(Transform muzzle)
