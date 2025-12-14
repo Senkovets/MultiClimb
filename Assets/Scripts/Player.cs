@@ -82,7 +82,7 @@ public class Player : NetworkBehaviour
             inputManager.LocalPlayer = this;
             Name = PlayerPrefs.GetString("Photon.Menu.Username");
             RPC_PlayerName(Name);
-            CameraFollow.Singleton.SetTarget(camTarget, this);
+            CameraController.Singleton.SetTarget(camTarget, this);
             UIManager.Singleton.LocalPlayer = this;
         }
     }
@@ -125,7 +125,7 @@ public class Player : NetworkBehaviour
     {
         if (HasInputAuthority)
         {
-            CameraFollow.Singleton.SetTarget(null, this);
+            CameraController.Singleton.SetTarget(null, this);
             UIManager.Singleton.LocalPlayer = null;
         }
     }

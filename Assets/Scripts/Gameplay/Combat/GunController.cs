@@ -45,7 +45,7 @@ public class GunController : MonoBehaviour
 
     private void LateUpdate()
     {
-        UpdateRecoil();
+       // UpdateRecoil();
     }
 
     private void HandleShooting()

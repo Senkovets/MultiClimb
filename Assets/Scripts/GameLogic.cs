@@ -11,6 +11,24 @@ public enum GameState
 
 public class GameLogic : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 {
+    public static GameLogic Singleton
+    {
+        get => _singleton;
+        set
+        {
+            if (value == null)
+                _singleton = null;
+            else if (_singleton == null)
+                _singleton = value;
+            else if (_singleton != value)
+            {
+                Destroy(value);
+                Debug.LogError($"There should only ever be one instance of {nameof(GameLogic)}!");
+            }
+        }
+    }
+    private static GameLogic _singleton;
+
     [SerializeField] private NetworkPrefabRef playerPrefab;
     [SerializeField] private Transform spawnpoint;
     [SerializeField] private Transform spawnpointPivot;
@@ -18,6 +36,11 @@ public class GameLogic : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     [Networked] private Player Winner { get; set; }
     [Networked, OnChangedRender(nameof(GameStateChanged))] private GameState State { get; set; }
     [Networked, Capacity(12)] private NetworkDictionary<PlayerRef, Player> Players => default;
+
+    private void Awake()
+    {
+        Singleton = this;
+    }
 
     public override void Spawned()
     {
