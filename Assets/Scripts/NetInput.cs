@@ -13,6 +13,6 @@ public struct NetInput : INetworkInput
 {
     public NetworkButtons Buttons;
     public Vector2 Direction;
-    public Vector2 LookDelta;
+    public float LookYaw;        // ? ÀÁÑÎËÞÒÍÛÉ ןמגמנמע
     public AbilityMode AbilityMode;
 }

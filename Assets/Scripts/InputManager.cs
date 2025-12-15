@@ -36,8 +36,8 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             }
             else
             {
-             /*   Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;*/
+                /*   Cursor.lockState = CursorLockMode.Locked;
+                   Cursor.visible = false;*/
             }
         }
 
@@ -98,6 +98,28 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         accumulatedInput.AbilityMode = selectedAbility;
     }
 
+    private float GetMouseYaw(Player player)
+    {
+        Camera cam = Camera.main;
+        if (!cam || player == null)
+            return 0f;
+
+        Ray ray = cam.ScreenPointToRay(Mouse.current.position.ReadValue());
+
+        Plane plane = new Plane(Vector3.up, player.transform.position);
+        if (!plane.Raycast(ray, out float enter))
+            return 0f;
+
+        Vector3 hit = ray.GetPoint(enter);
+        Vector3 dir = hit - player.transform.position;
+        dir.y = 0f;
+
+        if (dir.sqrMagnitude < 0.001f)
+            return player.transform.eulerAngles.y;
+
+        return Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
+    }
+
     void INetworkRunnerCallbacks.OnConnectedToServer(NetworkRunner runner) { }
 
     void INetworkRunnerCallbacks.OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason) { }
@@ -113,10 +135,16 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     void INetworkRunnerCallbacks.OnInput(NetworkRunner runner, NetworkInput input)
     {
         accumulatedInput.Direction.Normalize();
-        accumulatedInput.LookDelta = mouseDeltaAccumulator.ConsumeTickAligned(runner);
+
+        if (LocalPlayer != null)
+        {
+            accumulatedInput.LookYaw = GetMouseYaw(LocalPlayer);
+        }
+
         input.Set(accumulatedInput);
         resetInput = true;
     }
+
 
     void INetworkRunnerCallbacks.OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
 

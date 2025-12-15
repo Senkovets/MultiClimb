@@ -132,39 +132,34 @@ public class Player : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        if (GetInput(out NetInput input))
-        {
-            SelectedAbility = input.AbilityMode;
-            CheckGlide(input);
-            CheckJump(input);
+        if (!GetInput(out NetInput input))
+            return;
 
-            // Обновляем поворот через курсор
-            UpdateCursorRotation();
+        kcc.SetLookRotation(0f, input.LookYaw);
 
-            UpdateCamTarget();
-            Vector3 lookDirection = camTarget.forward;
+        SelectedAbility = input.AbilityMode;
+        CheckGlide(input);
+        CheckJump(input);
 
-            if (input.Buttons.WasPressed(PreviousButtons, InputButton.Grapple))
-                TryGrapple(lookDirection);
+        UpdateCamTarget();
 
-            if (IsGliding && !CanGlide)
-                ToggleGlide(false);
+        Vector3 lookDirection = camTarget.forward;
 
-            // Обновляем направление движения
-            SetInputDirection(input);
-            CheckAbilities(input, lookDirection);
-            PreviousButtons = input.Buttons;
-            baseLookRotation = kcc.GetLookRotation();
-        }
+        SetInputDirection(input);
+        CheckAbilities(input, lookDirection);
+
+        PreviousButtons = input.Buttons;
+        baseLookRotation = kcc.GetLookRotation();
     }
+
 
     public override void Render()
     {
-        if (kcc.IsPredictingLookRotation)
+       /* if (kcc.IsPredictingLookRotation)
         {
             Vector2 predictedLookRotation = baseLookRotation + inputManager.AccumulatedMouseDelta * lookSensitivity;
             kcc.SetLookRotation(predictedLookRotation);
-        }
+        }*/
 
         UpdateCamTarget();
     }
