@@ -134,9 +134,9 @@ GameObject:
   - component: {fileID: 4893721}
   - component: {fileID: 4893720}
   - component: {fileID: 4893719}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Ground
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -7182,7 +7182,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d79e1efd92259648955bf1adc6edd66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 100
+  maxHealth: 10000
 --- !u!65 &781471632
 BoxCollider:
   m_ObjectHideFlags: 0

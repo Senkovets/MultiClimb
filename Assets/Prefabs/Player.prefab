@@ -964,7 +964,7 @@ MonoBehaviour:
     ColliderLayer: 6
     CollisionLayerMask:
       serializedVersion: 2
-      m_Bits: 65
+      m_Bits: 321
     Features: -1
     InputAuthorityBehavior: 0
     StateAuthorityBehavior: 0
@@ -1050,6 +1050,9 @@ MonoBehaviour:
   gunMuzzle: {fileID: 5904446952089910354}
   muzzleFlashPrefab: {fileID: 7949962657928002599, guid: 0c0a8a1b696eef64c8c0b0a4bcb81722,
     type: 3}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 384
   hitLayers:
     serializedVersion: 2
     m_Bits: 129
@@ -1064,6 +1067,8 @@ MonoBehaviour:
   horizontalRecoil: 0.8
   recoilRecoverySpeed: 5
   recoilRandomness: 0.3
+  _projectilePrefab: {fileID: 8871295660669345600, guid: 547744cd9dc623043910b7917a10a2bd,
+    type: 3}
 --- !u!1001 &4218172695574425155
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -7,6 +7,7 @@ public class GunController : MonoBehaviour
     [Header("Основные параметры")]
     public Transform gunMuzzle; // Точка вылета пуль
     public GameObject muzzleFlashPrefab; // Префаб вспышки
+    public LayerMask groundLayer; // Слои для попаданий
     public LayerMask hitLayers; // Слои для попаданий
     public CameraFollow playerCamera; // Камера игрока
 
@@ -31,6 +32,9 @@ public class GunController : MonoBehaviour
     private float recoilTimer;
 
     private List<Vector3> debugPoints = new List<Vector3>();
+
+    [SerializeField]
+    private Projectile _projectilePrefab;
 
     private void Start()
     {
@@ -85,7 +89,7 @@ public class GunController : MonoBehaviour
         float vertical = verticalRecoil * (1 + Random.Range(-recoilRandomness, recoilRandomness));
         float horizontal = horizontalRecoil * (1 + Random.Range(-recoilRandomness, recoilRandomness));
 
-        currentRecoil.x += vertical;
+        currentRecoil.x += vertical;    
         currentRecoil.y += horizontal * (Random.value * 2 - 1); // Случайное направление
         recoilTimer = 0;
     }
@@ -110,16 +114,13 @@ public class GunController : MonoBehaviour
     private void ShootBullet()
     {
         Camera cam = Camera.main;
-        if (cam == null)
-            return;
+        if (cam == null) return;
 
-        // Луч из камеры через курсор
         Ray camRay = cam.ScreenPointToRay(Input.mousePosition);
-
         Vector3 targetPoint;
 
-        // Если камера попала в объект
-        if (Physics.Raycast(camRay, out RaycastHit camHit, 2000f, hitLayers))
+        // Точка пересечения с объектом
+        if (Physics.Raycast(camRay, out RaycastHit camHit, 2000f, groundLayer))
         {
             targetPoint = camHit.point;
         }
@@ -128,32 +129,89 @@ public class GunController : MonoBehaviour
             targetPoint = camRay.origin + camRay.direction * 2000f;
         }
 
-        // Выравнивание точки по высоте gunMuzzle
-        targetPoint.y = gunMuzzle.position.y;
+        Vector3 normalToCamera = (cam.transform.position - targetPoint).normalized;
 
-        // Итоговое направление
+        Debug.DrawRay(targetPoint, normalToCamera * 5, Color.green, 5f);
+
+
+        float targetY = gunMuzzle.position.y;
+
+        float t = (targetY - targetPoint.y) / normalToCamera.y;
+        Vector3 pointAtY10 = targetPoint + normalToCamera * t;
+
+        Vector3 fireDirection5 = (pointAtY10 - gunMuzzle.position).normalized;
+
+        Debug.DrawRay(gunMuzzle.position, fireDirection5 * 100, Color.blue, 8f); // правильная стрельба 
+
+
+        float a = gunMuzzle.position.y;
+        Vector3 offsetPoint = targetPoint + normalToCamera * a;
+        Vector3 finalTargetPoint = offsetPoint;
+
+        float b = gunMuzzle.position.y;
+        Vector3 offsetPoint3 = targetPoint + normalToCamera * a;
+        offsetPoint3.y = gunMuzzle.position.y;
+        Vector3 finalTargetPoint2 = offsetPoint;
+
+
+        Debug.DrawLine(targetPoint, targetPoint + Vector3.up, Color.magenta, 5f);
+
+        Vector3 offsetPoint2 = targetPoint;
+        offsetPoint2.y = gunMuzzle.position.y;
+
+        // Вычисляем направление выстрела от оружия к targetPoint
         Vector3 fireDirection = (targetPoint - gunMuzzle.position).normalized;
+        Vector3 FinalFireDirection = (finalTargetPoint - gunMuzzle.position).normalized;
+        Vector3 fireDirection3 = (offsetPoint2 - gunMuzzle.position).normalized;
+        Vector3 fireDirection4 = (offsetPoint3 - gunMuzzle.position).normalized;
 
+
+
+        Debug.DrawRay(gunMuzzle.position, fireDirection * 100, Color.green, 5f);
+        Debug.DrawRay(gunMuzzle.position, FinalFireDirection * 100, Color.cyan, 5f);
+        Debug.DrawRay(gunMuzzle.position, fireDirection3 * 100, Color.gray, 5f);
+        Debug.DrawRay(gunMuzzle.position, fireDirection4 * 100, Color.black, 5f);
+
+
+        // Плавная отдача камеры в сторону fireDirection
+        CameraController.Singleton.Shake(fireDirection, 1);
+
+
+
+        Shoot(fireDirection5);
         // Выстрел
-        if (Physics.Raycast(gunMuzzle.position, fireDirection, out RaycastHit hit, bulletDistance, hitLayers))
+        if (Physics.Raycast(gunMuzzle.position, fireDirection5, out RaycastHit hit, bulletDistance, hitLayers))
         {
             var health = hit.collider.GetComponent<MinimalHealth>();
             if (health != null)
+            {
+                Debug.DrawLine(gunMuzzle.position, hit.point, Color.red, 5f);
                 health.TakeDamage(damage);
+            }
+            else
+            {
+                Debug.DrawLine(gunMuzzle.position, hit.point, Color.yellow, 5f);
+            }
 
-            Debug.DrawLine(gunMuzzle.position, hit.point, Color.red, 0.5f);
-
-            // Запоминаем точку удара для гизма
             debugPoints.Add(hit.point);
         }
         else
         {
-            Vector3 missPoint = gunMuzzle.position + fireDirection * bulletDistance;
-            Debug.DrawLine(gunMuzzle.position, missPoint, Color.yellow, 0.5f);
-
-            // Запоминаем точку промаха
+            Vector3 missPoint = gunMuzzle.position + fireDirection5 * bulletDistance;
+            Debug.DrawLine(gunMuzzle.position, missPoint, Color.grey, 5f);
             debugPoints.Add(missPoint);
         }
+    }
+
+    void Shoot(Vector3 fireDirection)
+    {
+        Projectile proj = Instantiate(
+            _projectilePrefab,
+            gunMuzzle.position,
+            Quaternion.LookRotation(fireDirection)
+        );
+
+        proj.Init(fireDirection);
     }
 
 

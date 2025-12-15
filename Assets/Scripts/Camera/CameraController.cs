@@ -1,5 +1,6 @@
 using Cinemachine;
 using UnityEngine;
+using static CameraShaker;
 
 public class CameraController : MonoBehaviour
 {
@@ -49,6 +50,16 @@ public class CameraController : MonoBehaviour
         _player = player;
 
         _VCamera.Follow = _followTarget;
+    }
+
+    public void Shake(Vector3 fireDirection)
+    {
+        _cameraShaker.TestShake(fireDirection);
+    }
+
+    public void Shake(Vector3 fireDirection, int Power)
+    {
+        _cameraShaker.TestShake(fireDirection, Power);
     }
 
 }
