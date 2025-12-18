@@ -1,6 +1,5 @@
 using Cinemachine;
 using UnityEngine;
-using static CameraShaker;
 
 public class CameraController : MonoBehaviour
 {

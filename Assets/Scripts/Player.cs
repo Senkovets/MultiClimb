@@ -2,7 +2,7 @@ using Fusion;
 using Fusion.Addons.KCC;
 using System;
 using UnityEngine;
-using UnityEngine.EventSystems;
+using UnityEngine.UIElements;
 
 public enum AbilityMode : byte
 {
@@ -13,6 +13,8 @@ public enum AbilityMode : byte
 
 public class Player : NetworkBehaviour
 {
+    private NetworkHealth _health;
+
     [SerializeField] private MeshRenderer[] modelParts;
     [SerializeField] private LayerMask lagCompLayers;
     [SerializeField] private KCC kcc;
@@ -58,6 +60,8 @@ public class Player : NetworkBehaviour
     [Networked] private TickTimer GlideCD { get; set; }
     [Networked] private TickTimer DoubleJumpCD { get; set; }
     [Networked] private NetworkButtons PreviousButtons { get; set; }
+    [Networked] public int Kills { get; private set; }
+
     [Networked, OnChangedRender(nameof(Jumped))] private int JumpSync { get; set; }
     [Networked, OnChangedRender(nameof(Shoved))] private int ShoveSync { get; set; }
 
@@ -70,6 +74,8 @@ public class Player : NetworkBehaviour
 
     public override void Spawned()
     {
+        _health = GetComponent<NetworkHealth>();
+
         glideDrain = 1f / (maxGlideTime * Runner.TickRate);
         GlideCharge = 1f;
 
@@ -101,6 +107,28 @@ public class Player : NetworkBehaviour
 
         return ray.GetPoint(100f);
     }
+
+    public void AddKill()
+    {
+        if (HasStateAuthority)
+            Kills++;
+    }
+
+
+    public void Respawn()
+    {
+        if (!HasStateAuthority)
+            return;
+
+        _health.ResetHealth();
+
+        GameLogic.Singleton.GetSpawnPoint(out Vector3 pos, out Quaternion rot);
+
+        Teleport(pos, rot);
+    }
+
+
+
 
     private void UpdateCursorRotation()
     {
@@ -155,11 +183,11 @@ public class Player : NetworkBehaviour
 
     public override void Render()
     {
-       /* if (kcc.IsPredictingLookRotation)
-        {
-            Vector2 predictedLookRotation = baseLookRotation + inputManager.AccumulatedMouseDelta * lookSensitivity;
-            kcc.SetLookRotation(predictedLookRotation);
-        }*/
+        /* if (kcc.IsPredictingLookRotation)
+         {
+             Vector2 predictedLookRotation = baseLookRotation + inputManager.AccumulatedMouseDelta * lookSensitivity;
+             kcc.SetLookRotation(predictedLookRotation);
+         }*/
 
         UpdateCamTarget();
     }

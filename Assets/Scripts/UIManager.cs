@@ -107,24 +107,29 @@ public class UIManager : MonoBehaviour
         cageSelected.enabled = mode == AbilityMode.Cage;
         shoveSelected.enabled = mode == AbilityMode.Shove;
     }
-
     public void UpdateLeaderboard(KeyValuePair<Fusion.PlayerRef, Player>[] players)
     {
         for (int i = 0; i < leaderboardItems.Length; i++)
         {
             LeaderboardItem item = leaderboardItems[i];
+
             if (i < players.Length)
             {
-                item.nameText.text = players[i].Value.Name;
-                item.heightText.text = $"{players[i].Value.Score}m";
+                Player player = players[i].Value;
+
+                item.nameText.text = player.Name;
+
+                // пример формата: "Kills: 5 | Score: 120"
+                item.heightText.text = $"Kills: {player.Kills} | Score: {player.Score}";
             }
             else
             {
-                item.nameText.text = "";
-                item.heightText.text = "";
+                item.nameText.text = string.Empty;
+                item.heightText.text = string.Empty;
             }
         }
     }
+
 
     [Serializable]
     private struct LeaderboardItem

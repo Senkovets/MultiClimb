@@ -29,6 +29,8 @@ public class GameLogic : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     }
     private static GameLogic _singleton;
 
+    private Vector3[] spawnPositions;
+
     [SerializeField] private NetworkPrefabRef playerPrefab;
     [SerializeField] private Transform spawnpoint;
     [SerializeField] private Transform spawnpointPivot;
@@ -40,6 +42,15 @@ public class GameLogic : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     private void Awake()
     {
         Singleton = this;
+
+        spawnPositions = new Vector3[]
+     {
+        new Vector3(5f, 0f, 5f),
+        new Vector3(10f, 0f, 0f),
+        new Vector3(0f, 0f, 10f),
+        new Vector3(10f, 0f, 10f)
+     };
+
     }
 
     public override void Spawned()
@@ -49,6 +60,15 @@ public class GameLogic : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         UIManager.Singleton.SetWaitUI(State, Winner);
         Runner.SetIsSimulated(Object, true);
     }
+
+    public void GetSpawnPoint(out Vector3 pos, out Quaternion rot)
+    {
+        Debug.Log("GetSpawnPoint");
+        pos = spawnPositions[Random.Range(0, spawnPositions.Length)];
+        rot = Quaternion.identity;
+    }
+
+
 
     private void OnTriggerEnter(Collider other)
     {

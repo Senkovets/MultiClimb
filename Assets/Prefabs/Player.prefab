@@ -829,6 +829,8 @@ GameObject:
   - component: {fileID: 7790788000812587550}
   - component: {fileID: 5754445826141032479}
   - component: {fileID: 5512796162034683420}
+  - component: {fileID: -5356276029104326098}
+  - component: {fileID: 2526720971422132695}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -873,6 +875,8 @@ MonoBehaviour:
   - {fileID: 7227464116718632667}
   - {fileID: 4391075928499431294}
   - {fileID: 8686857379923021993}
+  - {fileID: 5512796162034683420}
+  - {fileID: -5356276029104326098}
 --- !u!54 &5555162426367305650
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -943,6 +947,7 @@ MonoBehaviour:
   _GlideCharge: 0
   _IsGliding: 0
   _IsCaged: 0
+  _Kills: 0
 --- !u!114 &4391075928499431294
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1047,28 +1052,52 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 762bfca829d0bd94fb700c143fffaf28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gunMuzzle: {fileID: 5904446952089910354}
-  muzzleFlashPrefab: {fileID: 7949962657928002599, guid: 0c0a8a1b696eef64c8c0b0a4bcb81722,
+  fireRate: 0.1
+  fireMode: 0
+  boltReloadTicks: 60
+  projectilePrefab: {fileID: 3523407342374443459, guid: 2433662b390604e4daa9d1b09edae2e0,
     type: 3}
+  gunMuzzle: {fileID: 5904446952089910354}
   groundLayer:
     serializedVersion: 2
     m_Bits: 384
-  hitLayers:
+--- !u!114 &-5356276029104326098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9040168462585498880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16ad2c6cc399d2e4e8c7108df12be964, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _CurrentHealth: 0
+  maxHealth: 100
+--- !u!136 &2526720971422132695
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9040168462585498880}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
     serializedVersion: 2
-    m_Bits: 129
-  playerCamera: {fileID: 0}
-  maxAmmo: 30
-  fireRate: 0.1
-  reloadTime: 2
-  damage: 25
-  bulletSpeed: 100
-  bulletDistance: 100
-  verticalRecoil: 1.5
-  horizontalRecoil: 0.8
-  recoilRecoverySpeed: 5
-  recoilRandomness: 0.3
-  _projectilePrefab: {fileID: 8871295660669345600, guid: 547744cd9dc623043910b7917a10a2bd,
-    type: 3}
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 1
+  m_Height: 1
+  m_Direction: 1
+  m_Center: {x: 0, y: 1, z: 0}
 --- !u!1001 &4218172695574425155
 PrefabInstance:
   m_ObjectHideFlags: 0
