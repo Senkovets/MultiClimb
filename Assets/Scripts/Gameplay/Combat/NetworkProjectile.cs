@@ -4,7 +4,7 @@ using UnityEngine;
 public class NetworkProjectile : NetworkBehaviour
 {
     [Header("Movement")]
-    public float speed = 37.2f;
+    public float speed = 60f;
     public float maxDistance = 100f;
 
     [Header("Damage")]
@@ -15,31 +15,58 @@ public class NetworkProjectile : NetworkBehaviour
 
     // Основные networked переменные
     [Networked] private Vector3 Direction { get; set; }
-    [Networked] private Vector3 StartPosition { get; set; }
     [Networked] private Player Owner { get; set; }
     [Networked] private TickTimer DespawnTimer { get; set; }
+    [Networked] private Vector3 SpawnPosition { get; set; }
 
     private const float BULLET_RADIUS = 0.05f;
 
     // Для плавной интерполяции
     private Vector3 visualPosition;
 
-    public void Init(Vector3 dir, Player owner)
+    public void Init(Vector3 spawnPos, Vector3 dir, Player owner)
     {
         if (!HasStateAuthority) return;
 
+        SpawnPosition = spawnPos;
         Direction = dir.normalized;
-        StartPosition = transform.position;
         Owner = owner;
 
+        // ✅ КРИТИЧНО: Устанавливаем позицию СРАЗУ В INIT
+        transform.position = spawnPos;
+
+        // 🔍 DEBUG
+        Debug.Log($"[Projectile] Init: SpawnPos={spawnPos}, Direction={Direction}");
+
+        // Устанавливаем визуальное направление сразу
         if (Direction.sqrMagnitude > 0.0001f)
+        {
             transform.rotation = Quaternion.LookRotation(Direction);
+        }
+
+        // ВАЖНО: Проверка на NaN
+        if (float.IsNaN(Direction.x) || float.IsNaN(Direction.y) || float.IsNaN(Direction.z))
+        {
+            Debug.LogError($"Invalid Direction in Init: {dir}");
+            Direction = Vector3.forward;
+        }
     }
 
     public override void Spawned()
     {
+        // ✅ КРИТИЧНО: Используем SpawnPosition если она задана
+        if (SpawnPosition != Vector3.zero)
+        {
+            transform.position = SpawnPosition;
+        }
+
+        // КРИТИЧНО: инициализируем visualPosition для ВСЕХ клиентов
         visualPosition = transform.position;
 
+        // 🔍 DEBUG
+        Debug.Log($"[Projectile] Spawned: Position={transform.position}, Direction={Direction}, HasAuthority={HasStateAuthority}");
+
+        // На клиентах Direction уже синхронизирован из [Networked]
         if (Direction.sqrMagnitude > 0.0001f)
             transform.rotation = Quaternion.LookRotation(Direction);
     }
@@ -59,7 +86,6 @@ public class NetworkProjectile : NetworkBehaviour
         Vector3 nextPos = currentPos + Direction * step;
 
         // КРИТИЧНО: Используем RaycastAll для проверки ВСЕХ попаданий
-        // SphereCast иногда пропускает тонкие объекты на высокой скорости
         RaycastHit[] hits = Physics.SphereCastAll(
             currentPos,
             BULLET_RADIUS,
@@ -95,8 +121,8 @@ public class NetworkProjectile : NetworkBehaviour
             return;
         }
 
-        // Проверка максимальной дистанции
-        if (Vector3.Distance(StartPosition, nextPos) >= maxDistance)
+        // Проверка максимальной дистанции - используем SpawnPosition
+        if (Vector3.Distance(SpawnPosition, nextPos) >= maxDistance)
         {
             DespawnTimer = TickTimer.CreateFromTicks(Runner, 1);
             return;
@@ -108,16 +134,22 @@ public class NetworkProjectile : NetworkBehaviour
     // ЭКСТРАПОЛЯЦИЯ - продолжаем движение между сетевыми апдейтами
     public override void Render()
     {
+        // Проверка что Direction синхронизирован
+        if (Direction.sqrMagnitude < 0.0001f)
+            return;
+
         // Двигаем визуал вперёд на полной скорости
         visualPosition += Direction * speed * Time.deltaTime;
 
         // Корректируем если слишком далеко ушли от сетевой позиции
         float drift = Vector3.Distance(visualPosition, transform.position);
-        if (drift > 0.5f) // Если отклонение больше 50см
+        if (drift > 1f) // Если отклонение больше 1 метра
         {
-            visualPosition = transform.position; // Ресинхронизируем
+            // Плавная коррекция вместо резкого телепорта
+            visualPosition = Vector3.Lerp(visualPosition, transform.position, 0.5f);
         }
 
-        transform.localPosition = visualPosition;
+        // ИСПРАВЛЕНИЕ: используем position напрямую, а не localPosition
+        transform.position = visualPosition;
     }
 }

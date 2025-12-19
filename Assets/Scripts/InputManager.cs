@@ -1,4 +1,4 @@
-using Fusion;
+п»їusing Fusion;
 using Fusion.Addons.KCC;
 using Fusion.Menu;
 using Fusion.Sockets;
@@ -8,13 +8,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>
-/// Собирает ЛОКАЛЬНЫЙ ввод (мышь/клава) и отдаёт его Fusion через OnInput.
-/// Важно:
-/// - Здесь разрешено использовать Camera/Mouse (это локальная логика).
-/// - В сетевом геймплее (FixedUpdateNetwork на NetworkBehaviour) Camera/Mouse запрещены.
-/// - Мы вычисляем AimDirection (мировой вектор прицеливания) и Fire-кнопку.
-/// </summary>
 public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCallbacks
 {
     public Player LocalPlayer;
@@ -29,7 +22,6 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 
     void IBeforeUpdate.BeforeUpdate()
     {
-        // Сбрасываем накопленный ввод после того, как он был отправлен в OnInput.
         if (resetInput)
         {
             resetInput = false;
@@ -41,7 +33,7 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 
         NetworkButtons buttons = default;
 
-        // Тоггл курсора (оставил как у тебя, но без лишней логики)
+        // РљСѓСЂСЃРѕСЂ
         if (keyboard != null &&
             (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame || keyboard.escapeKey.wasPressedThisFrame))
         {
@@ -50,33 +42,21 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
-            else
-            {
-                // При желании можно вернуть lock тут.
-                // Cursor.lockState = CursorLockMode.Locked;
-                // Cursor.visible = false;
-            }
         }
 
-        // ====== MOUSE ======
+        // MOUSE
         if (mouse != null)
         {
-            // ВАЖНО: Fire должен быть edge-event (wasPressedThisFrame), а не isPressed.
             buttons.Set(InputButton.Fire, mouse.leftButton.isPressed);
-
-            // Если UseAbility уже занят на левую кнопку — это конфликт.
-            // Сейчас оставляю твою схему, но учти: Fire и UseAbility одновременно на LMB — ошибка дизайна ввода.
-            // Лучше переназначить UseAbility на другую кнопку.
             buttons.Set(InputButton.UseAbility, mouse.leftButton.isPressed);
             buttons.Set(InputButton.Grapple, mouse.rightButton.isPressed);
 
-            // Накопление дельты (если нужно для камеры/поворота)
             Vector2 mouseDelta = mouse.delta.ReadValue();
             Vector2 lookRotationDelta = new(-mouseDelta.y, mouseDelta.x);
             mouseDeltaAccumulator.Accumulate(lookRotationDelta);
         }
 
-        // ====== KEYBOARD ======
+        // KEYBOARD
         if (keyboard != null)
         {
             if (keyboard.rKey.wasPressedThisFrame && LocalPlayer != null)
@@ -94,7 +74,6 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             buttons.Set(InputButton.Jump, keyboard.spaceKey.isPressed);
             buttons.Set(InputButton.Glide, keyboard.leftShiftKey.isPressed);
 
-            // Выбор способности
             if (keyboard.digit1Key.wasPressedThisFrame)
             {
                 selectedAbility = AbilityMode.BreakBlock;
@@ -112,52 +91,63 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             }
         }
 
-        // Присваиваем кнопки и выбранную способность.
-        // Не OR-им со старыми кнопками — accumulatedInput и так живёт 1 тик (мы его сбрасываем после OnInput).
         accumulatedInput.Buttons = buttons;
         accumulatedInput.AbilityMode = selectedAbility;
 
-        // Вычисляем прицеливание (мировой вектор) ЛОКАЛЬНО.
-        accumulatedInput.AimDirection = GetAimDirection(LocalPlayer);
-        accumulatedInput.LookYaw = GetMouseYaw(LocalPlayer); // оставил, если где-то ещё используется
+        // вњ… РРЎРџРћР›Р¬Р—РЈР•Рњ РњР•РўРћР” РР— GunController Р”Р›РЇ РљРћРќРЎРРЎРўР•РќРўРќРћРЎРўР
+        accumulatedInput.AimDirection = GetAimDirectionFromGun();
+        accumulatedInput.LookYaw = GetMouseYaw(LocalPlayer);
     }
 
     /// <summary>
-    /// Мировой вектор прицеливания: из позиции игрока в точку под курсором на плоскости XZ.
-    /// Это то, что сервер будет использовать для направления выстрела. Сервер не трогает Camera/Mouse.
+    /// вњ… РќРћР’Р«Р™ РњР•РўРћР”: РёСЃРїРѕР»СЊР·СѓРµС‚ GunController.GetDirection() РґР»СЏ РєРѕРЅСЃРёСЃС‚РµРЅС‚РЅРѕСЃС‚Рё
+    /// </summary>
+    private Vector3 GetAimDirectionFromGun()
+    {
+        if (LocalPlayer == null)
+            return Vector3.forward;
+
+        GunController gun = LocalPlayer.GetComponent<GunController>();
+        if (gun != null)
+        {
+            return gun.GetDirection();
+        }
+
+        // Fallback РЅР° РїСЂРѕСЃС‚РѕРµ РЅР°РїСЂР°РІР»РµРЅРёРµ
+        return GetAimDirection(LocalPlayer);
+    }
+
+    /// <summary>
+    /// РћСЂРёРіРёРЅР°Р»СЊРЅС‹Р№ РјРµС‚РѕРґ (С‚РµРїРµСЂСЊ fallback)
     /// </summary>
     private Vector3 GetAimDirection(Player player)
     {
         if (player == null)
-            return Vector3.zero;
+            return Vector3.forward;
 
         Camera cam = Camera.main;
         Mouse mouse = Mouse.current;
 
         if (cam == null || mouse == null)
-            return Vector3.zero;
+            return Vector3.forward;
 
         Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
 
-        // Плоскость на уровне игрока (можно заменить на уровень оружия/плеча, если нужно)
         Plane plane = new Plane(Vector3.up, player.transform.position);
 
         if (!plane.Raycast(ray, out float enter))
-            return Vector3.zero;
+            return player.transform.forward;
 
         Vector3 hit = ray.GetPoint(enter);
         Vector3 dir = hit - player.transform.position;
         dir.y = 0f;
 
         if (dir.sqrMagnitude < 0.0001f)
-            return Vector3.zero;
+            return player.transform.forward;
 
         return dir.normalized;
     }
 
-    /// <summary>
-    /// Абсолютный yaw (угол поворота по Y) в сторону курсора на плоскости XZ.
-    /// </summary>
     private float GetMouseYaw(Player player)
     {
         if (player == null)
@@ -189,16 +179,13 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 
     void INetworkRunnerCallbacks.OnInput(NetworkRunner runner, NetworkInput input)
     {
-        // Нормализуем движение
         accumulatedInput.Direction.Normalize();
 
-        // ВАЖНО: AimDirection уже нормализован, но на всякий случай:
         if (accumulatedInput.AimDirection.sqrMagnitude > 1.001f)
             accumulatedInput.AimDirection.Normalize();
 
         input.Set(accumulatedInput);
 
-        // После отправки ввода в текущем тике — сбросим накопленное
         resetInput = true;
     }
 
@@ -222,9 +209,7 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     {
         if (player == runner.LocalPlayer)
         {
-            // При желании можно залочить курсор тут.
-            // Cursor.lockState = CursorLockMode.Locked;
-            // Cursor.visible = false;
+            // РњРѕР¶РЅРѕ Р·Р°Р»РѕС‡РёС‚СЊ РєСѓСЂСЃРѕСЂ
         }
     }
 

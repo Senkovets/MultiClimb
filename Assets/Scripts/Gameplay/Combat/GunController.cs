@@ -1,4 +1,4 @@
-using Fusion;
+п»їusing Fusion;
 using UnityEngine;
 
 public class GunController : NetworkBehaviour
@@ -6,15 +6,14 @@ public class GunController : NetworkBehaviour
     [Header("Fire")]
     public float fireRate = 0.1f;
     public FireMode fireMode = FireMode.Auto;
-    public int boltReloadTicks = 60; // ~1 сек при 60 TPS
-
+    public int boltReloadTicks = 60;
     [SerializeField] private NetworkProjectile projectilePrefab;
     public Transform gunMuzzle;
 
     [Networked] private int NextFireTick { get; set; }
     [Networked] private NetworkButtons PreviousButtons { get; set; }
 
-    public LayerMask groundLayer; // Слои для попаданий
+    public LayerMask groundLayer;
 
     private int fireCooldownTicks;
 
@@ -36,13 +35,11 @@ public class GunController : NetworkBehaviour
             return;
 
         bool wantFire = false;
-
         switch (fireMode)
         {
             case FireMode.Auto:
                 wantFire = input.Buttons.IsSet(InputButton.Fire);
                 break;
-
             case FireMode.Semi:
             case FireMode.Bolt:
                 wantFire = input.Buttons.WasPressed(PreviousButtons, (int)InputButton.Fire);
@@ -63,67 +60,66 @@ public class GunController : NetworkBehaviour
 
         if (fireMode == FireMode.Bolt)
         {
-            // Блокируем повторный выстрел до "перезарядки"
             NextFireTick += boltReloadTicks;
         }
     }
 
-
-
     private void TryFire(NetInput input)
     {
-        //Vector3 dir = input.AimDirection.normalized;
-        Vector3 dir = GetDirection();
+        Vector3 dir = input.AimDirection.normalized;
 
         if (dir.sqrMagnitude < 0.001f)
+        {
+            Debug.LogWarning($"[GunController] Invalid fire direction! AimDirection={input.AimDirection}");
             return;
+        }
 
+        // вњ… РљР РРўРР§РќРћ: Р’С‹С‡РёСЃР»СЏРµРј РїРѕР·РёС†РёСЋ Р”Рћ СЃРїР°РІРЅР°
+        Vector3 spawnPos = gunMuzzle.position;
+
+        // рџ”Ќ DEBUG: Р›РѕРіРёСЂСѓРµРј РЅР°РїСЂР°РІР»РµРЅРёРµ СЃС‚СЂРµР»СЊР±С‹
+        Debug.Log($"[GunController] Firing from {spawnPos} in direction {dir} | IsServer={HasStateAuthority}");
 
         Runner.Spawn(
             projectilePrefab,
-            gunMuzzle.position,
+            spawnPos, // в†ђ РџРµСЂРµРґР°С‘Рј СЏРІРЅРѕ
             Quaternion.LookRotation(dir),
             Object.InputAuthority,
             (runner, obj) =>
             {
-                obj.GetComponent<NetworkProjectile>().Init(dir, GetComponent<Player>());
+                // вњ… РџР•Р Р•Р”РђРЃРњ РџРћР—РР¦РР® Р’ INIT
+                obj.GetComponent<NetworkProjectile>().Init(spawnPos, dir, GetComponent<Player>());
             }
         );
     }
-
 
     public Vector3 GetDirection()
     {
         var cam = Camera.main;
         if (cam == null || gunMuzzle == null)
+        {
+            Debug.LogWarning("[GunController] Camera or gunMuzzle is null!");
             return Vector3.forward;
+        }
 
-        // Луч из камеры в курсор
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 
-        // Точка, в которую целимся
         Vector3 aimPoint;
         if (Physics.Raycast(ray, out RaycastHit hit, 2000f, groundLayer))
             aimPoint = hit.point;
         else
             aimPoint = ray.origin + ray.direction * 2000f;
 
-        // Проецируем aimPoint на уровень ствола (Y gunMuzzle)
         Vector3 cameraToAim = aimPoint - cam.transform.position;
 
-        // Защита от деления на ноль
         if (Mathf.Abs(cameraToAim.y) < 0.0001f)
             return gunMuzzle.forward;
 
         float t = (gunMuzzle.position.y - cam.transform.position.y) / cameraToAim.y;
         Vector3 projectedPoint = cam.transform.position + cameraToAim * t;
 
-        // Финальное направление выстрела
         Vector3 fireDirection = (projectedPoint - gunMuzzle.position).normalized;
-
-        Debug.DrawRay(gunMuzzle.position, fireDirection * 100f, Color.blue, 2f);
 
         return fireDirection;
     }
-
 }
