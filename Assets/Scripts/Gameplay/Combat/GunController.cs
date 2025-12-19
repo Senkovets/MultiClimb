@@ -72,10 +72,12 @@ public class GunController : NetworkBehaviour
 
     private void TryFire(NetInput input)
     {
-        Vector3 dir = input.AimDirection.normalized;
+        //Vector3 dir = input.AimDirection.normalized;
+        Vector3 dir = GetDirection();
 
         if (dir.sqrMagnitude < 0.001f)
             return;
+
 
         Runner.Spawn(
             projectilePrefab,

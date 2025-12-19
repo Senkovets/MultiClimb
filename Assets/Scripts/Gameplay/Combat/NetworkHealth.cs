@@ -35,7 +35,15 @@ public class NetworkHealth : NetworkBehaviour
             if (attacker != null && attacker != owner)
                 attacker.AddKill();
 
-            owner.Respawn();
+            if(owner == null)
+            {
+                Runner.Despawn(Object);
+            }
+            else
+            {
+                owner.Respawn();
+            }
+            
         }
     }
 
