@@ -4,7 +4,7 @@ using UnityEngine;
 public class NetworkProjectile : NetworkBehaviour
 {
     [Header("Movement")]
-    public float speed = 60f;
+    public float speed = 37.2f;
     public float maxDistance = 100f;
 
     [Header("Damage")]

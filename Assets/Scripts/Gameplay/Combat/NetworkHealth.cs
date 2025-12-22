@@ -3,53 +3,55 @@ using UnityEngine;
 
 public class NetworkHealth : NetworkBehaviour
 {
-    [Networked] public float CurrentHealth { get; private set; }
+    [Networked, OnChangedRender(nameof(OnHealthChanged))]
+    public float CurrentHealth { get; private set; }
 
-    [SerializeField] private float maxHealth = 100f;
+    public float MaxHealth { get; private set; } = 100f;
 
     private Player owner;
+    private HealthBar bar;
 
     public override void Spawned()
     {
         owner = GetComponent<Player>();
+        bar = GetComponentInChildren<HealthBar>(true);
 
         if (HasStateAuthority)
-            CurrentHealth = maxHealth;
+            CurrentHealth = MaxHealth;
+
+        bar?.Init(this);
     }
 
     public void ApplyDamage(float damage, Player attacker)
     {
-        Debug.Log("ApplyDamage");
         if (!HasStateAuthority)
             return;
 
         if (CurrentHealth <= 0f)
             return;
 
-        CurrentHealth -= damage;
+        CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
 
-        if (CurrentHealth <= 0f)
-        {
-            CurrentHealth = 0f;
+        if (CurrentHealth == 0f)
+            HandleDeath(attacker);
+    }
 
-            if (attacker != null && attacker != owner)
-                attacker.AddKill();
+    private void HandleDeath(Player attacker)
+    {
+        if (attacker != null && attacker != owner)
+            attacker.AddKill();
 
-            if(owner == null)
-            {
-                Runner.Despawn(Object);
-            }
-            else
-            {
-                owner.Respawn();
-            }
-            
-        }
+        owner.Respawn();
     }
 
     public void ResetHealth()
     {
         if (HasStateAuthority)
-            CurrentHealth = maxHealth;
+            CurrentHealth = MaxHealth;
+    }
+
+    private void OnHealthChanged()
+    {
+        bar?.UpdateBar();
     }
 }

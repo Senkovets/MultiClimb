@@ -76,6 +76,9 @@ public class Player : NetworkBehaviour
     {
         _health = GetComponent<NetworkHealth>();
 
+        var bar = GetComponentInChildren<HealthBar>(true);
+        bar.Init(_health);
+
         glideDrain = 1f / (maxGlideTime * Runner.TickRate);
         GlideCharge = 1f;
 
