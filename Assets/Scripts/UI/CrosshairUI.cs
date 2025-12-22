@@ -29,12 +29,20 @@ public class CrosshairUI : MonoBehaviour
     public float baseGap = 5f;
     public float scatterMultiplier = 5f; // Насколько расходится при scatter
 
+    [Header("Headshot Highlight")]
+    [SerializeField] private Color headshotColor = Color.cyan;
+    [SerializeField] private float aimDistance = 100f;
+    [SerializeField] private LayerMask hitboxLayers;
+
+    private Camera cam;
+
     private Texture2D crosshairTexture;
     private MinimalGunController gunController;
 
     void Start()
     {
         Singleton = this;
+        cam = Camera.main;
 
         crosshairTexture = new Texture2D(1, 1);
         crosshairTexture.SetPixel(0, 0, crosshairColor);
@@ -54,6 +62,9 @@ public class CrosshairUI : MonoBehaviour
         {
             //currentGap += gunController.GetCurrentScatter() * scatterMultiplier;
         }
+
+        crosshairColor = IsAimingAtHead() ? headshotColor : Color.white;
+
 
         float mouseX = Input.mousePosition.x;
         float mouseY = Input.mousePosition.y;
@@ -93,5 +104,27 @@ public class CrosshairUI : MonoBehaviour
 
         GUI.color = Color.white;
     }
+
+    private bool IsAimingAtHead()
+    {
+        if (cam == null)
+            return false;
+
+        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+
+        if (!Physics.Raycast(
+                ray,
+                out RaycastHit hit,
+                aimDistance,
+                hitboxLayers,
+                QueryTriggerInteraction.Collide))
+            return false;
+
+        if (!hit.collider.TryGetComponent(out PlayerHitbox hitbox))
+            return false;
+
+        return hitbox.Type == HitboxType.Head;
+    }
+
 
 }

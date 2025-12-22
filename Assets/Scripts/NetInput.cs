@@ -15,6 +15,7 @@ public struct NetInput : INetworkInput
 {
     public NetworkButtons Buttons;
     public Vector2 Direction;
+    public bool IsCriticalAim;
     public float LookYaw;        // ? ÀÁÑÎËÞÒÍÛÉ ןמגמנמע
     public Vector3 AimDirection;
     public AbilityMode AbilityMode;

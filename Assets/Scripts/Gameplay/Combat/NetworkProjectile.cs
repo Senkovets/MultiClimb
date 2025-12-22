@@ -14,6 +14,7 @@ public class NetworkProjectile : NetworkBehaviour
     [SerializeField] private LayerMask hitLayers;
 
     // Основные networked переменные
+    [Networked] private bool IsCritical { get; set; }
     [Networked] private Vector3 Direction { get; set; }
     [Networked] private Player Owner { get; set; }
     [Networked] private TickTimer DespawnTimer { get; set; }
@@ -24,33 +25,20 @@ public class NetworkProjectile : NetworkBehaviour
     // Для плавной интерполяции
     private Vector3 visualPosition;
 
-    public void Init(Vector3 spawnPos, Vector3 dir, Player owner)
+    public void Init(Vector3 spawnPos, Vector3 dir, Player owner, bool isCritical)
     {
         if (!HasStateAuthority) return;
 
         SpawnPosition = spawnPos;
         Direction = dir.normalized;
         Owner = owner;
+        IsCritical = isCritical;
 
-        // ✅ КРИТИЧНО: Устанавливаем позицию СРАЗУ В INIT
         transform.position = spawnPos;
 
-        // 🔍 DEBUG
-        Debug.Log($"[Projectile] Init: SpawnPos={spawnPos}, Direction={Direction}");
-
-        // Устанавливаем визуальное направление сразу
-        if (Direction.sqrMagnitude > 0.0001f)
-        {
-            transform.rotation = Quaternion.LookRotation(Direction);
-        }
-
-        // ВАЖНО: Проверка на NaN
-        if (float.IsNaN(Direction.x) || float.IsNaN(Direction.y) || float.IsNaN(Direction.z))
-        {
-            Debug.LogError($"Invalid Direction in Init: {dir}");
-            Direction = Vector3.forward;
-        }
+        Debug.Log("NetworkProjectile IsCritical: " + IsCritical);
     }
+
 
     public override void Spawned()
     {
@@ -114,8 +102,16 @@ public class NetworkProjectile : NetworkBehaviour
             transform.position = closestHit.point;
 
             NetworkHealth health = closestHit.collider.GetComponentInParent<NetworkHealth>();
+
             if (health != null)
-                health.ApplyDamage(damage, Owner);
+            {
+                float finalDamage = damage;
+
+                if (IsCritical)
+                    finalDamage *= 2f;
+
+                health.ApplyDamage(finalDamage, Owner);
+            }
 
             DespawnTimer = TickTimer.CreateFromTicks(Runner, 1);
             return;

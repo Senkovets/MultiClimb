@@ -67,6 +67,7 @@ public class GunController : NetworkBehaviour
     private void TryFire(NetInput input)
     {
         Vector3 dir = input.AimDirection.normalized;
+        bool isCritical = input.IsCriticalAim;
 
         if (dir.sqrMagnitude < 0.001f)
         {
@@ -80,6 +81,8 @@ public class GunController : NetworkBehaviour
         // 🔍 DEBUG: Логируем направление стрельбы
         Debug.Log($"[GunController] Firing from {spawnPos} in direction {dir} | IsServer={HasStateAuthority}");
 
+        Debug.Log($"[GunController] IsCriticalAim = {input.IsCriticalAim}");
+
         Runner.Spawn(
             projectilePrefab,
             spawnPos, // ← Передаём явно
@@ -88,7 +91,8 @@ public class GunController : NetworkBehaviour
             (runner, obj) =>
             {
                 // ✅ ПЕРЕДАЁМ ПОЗИЦИЮ В INIT
-                obj.GetComponent<NetworkProjectile>().Init(spawnPos, dir, GetComponent<Player>());
+                obj.GetComponent<NetworkProjectile>().Init(spawnPos, dir, GetComponent<Player>(), isCritical);
+
             }
         );
     }

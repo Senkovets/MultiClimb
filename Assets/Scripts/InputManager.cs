@@ -20,6 +20,27 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 
     private AbilityMode selectedAbility;
 
+    [SerializeField]
+    private LayerMask hitboxLayers = ~0;
+
+    private bool cachedCriticalAim;
+
+    private void Awake()
+    {
+        if (hitboxLayers == 0)
+        {
+            int hitboxLayer = LayerMask.NameToLayer("Default");
+            if (hitboxLayer == -1)
+            {
+                Debug.LogError("Layer 'Default' not found!");
+            }
+            else
+            {
+                hitboxLayers = 1 << hitboxLayer;
+            }
+        }
+    }
+
     void IBeforeUpdate.BeforeUpdate()
     {
         if (resetInput)
@@ -91,6 +112,14 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             }
         }
 
+        cachedCriticalAim = IsAimingAtHead();
+
+        if (mouse.leftButton.wasPressedThisFrame)
+        {
+            accumulatedInput.IsCriticalAim = cachedCriticalAim;
+        }
+
+
         accumulatedInput.Buttons = buttons;
         accumulatedInput.AbilityMode = selectedAbility;
 
@@ -98,6 +127,42 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         accumulatedInput.AimDirection = GetAimDirectionFromGun();
         accumulatedInput.LookYaw = GetMouseYaw(LocalPlayer);
     }
+
+    private bool IsAimingAtHead()
+    {
+        if (LocalPlayer == null)
+            return false;
+
+        Camera cam = Camera.main;
+        if (cam == null)
+            return false;
+
+        for (int i = 0; i < 32; i++)
+        {
+            if ((hitboxLayers.value & (1 << i)) != 0)
+            {
+                Debug.Log($"hitboxLayers includes layer {i} ({LayerMask.LayerToName(i)})");
+            }
+        }
+
+        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+
+        if (!Physics.Raycast(
+                ray,
+                out RaycastHit hit,
+                100f,
+                hitboxLayers,
+                QueryTriggerInteraction.Collide))
+            return false;
+
+        if (!hit.collider.TryGetComponent(out PlayerHitbox hb))
+            return false;
+
+        return hb.Type == HitboxType.Head;
+    }
+
+
+
 
     /// <summary>
     /// ✅ НОВЫЙ МЕТОД: использует GunController.GetDirection() для консистентности
