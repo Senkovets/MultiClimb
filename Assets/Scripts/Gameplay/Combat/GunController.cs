@@ -106,7 +106,7 @@ public class GunController : NetworkBehaviour
             return Vector3.forward;
         }
 
-        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
 
         Vector3 aimPoint;
         if (Physics.Raycast(ray, out RaycastHit hit, 2000f, groundLayer))

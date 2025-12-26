@@ -145,7 +145,7 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             }
         }
 
-        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
 
         if (!Physics.Raycast(
                 ray,
@@ -191,12 +191,11 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             return Vector3.forward;
 
         Camera cam = Camera.main;
-        Mouse mouse = Mouse.current;
 
-        if (cam == null || mouse == null)
+        if (cam == null)
             return Vector3.forward;
 
-        Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
 
         Plane plane = new Plane(Vector3.up, player.transform.position);
 
@@ -219,12 +218,11 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             return 0f;
 
         Camera cam = Camera.main;
-        Mouse mouse = Mouse.current;
 
-        if (cam == null || mouse == null)
+        if (cam == null)
             return 0f;
 
-        Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
 
         Plane plane = new Plane(Vector3.up, player.transform.position);
         if (!plane.Raycast(ray, out float enter))

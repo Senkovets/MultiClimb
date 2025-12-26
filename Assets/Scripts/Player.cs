@@ -96,7 +96,7 @@ public class Player : NetworkBehaviour
         }
     }
 
-    // Новый метод для получения позиции курсора в мировых координатах
+        Ray ray = Camera.main.ScreenPointToRay(RecoilController.GetAimScreenPosition());
     private Vector3 GetMouseWorldPosition()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -247,14 +247,14 @@ public class Player : NetworkBehaviour
         }
         else
         {
-            // Теперь движение происходит по глобальным осям
+            // Г’ГҐГЇГҐГ°Гј Г¤ГўГЁГ¦ГҐГ­ГЁГҐ ГЇГ°Г®ГЁГ±ГµГ®Г¤ГЁГІ ГЇГ® ГЈГ«Г®ГЎГ Г«ГјГ­Г»Г¬ Г®Г±ГїГ¬
             kcc.SetInputDirection(_moveDirection);
         }
     }
 
     private void UpdateCamTarget()
     {
-        // Обновляем цель камеры с учетом нового поворота
+        // ГЋГЎГ­Г®ГўГ«ГїГҐГ¬ Г¶ГҐГ«Гј ГЄГ Г¬ГҐГ°Г» Г± ГіГ·ГҐГІГ®Г¬ Г­Г®ГўГ®ГЈГ® ГЇГ®ГўГ®Г°Г®ГІГ 
         camTarget.localRotation = Quaternion.Euler(
             kcc.GetLookRotation().x,
             kcc.GetLookRotation().y,

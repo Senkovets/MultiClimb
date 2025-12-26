@@ -27,7 +27,7 @@ public class CrosshairUI : MonoBehaviour
     public float thickness = 2f;
     public float crosshairThickness = 2f;
     public float baseGap = 5f;
-    public float scatterMultiplier = 5f; // Насколько расходится при scatter
+    public float scatterMultiplier = 5f; // ГЌГ Г±ГЄГ®Г«ГјГЄГ® Г°Г Г±ГµГ®Г¤ГЁГІГ±Гї ГЇГ°ГЁ scatter
 
     [Header("Headshot Highlight")]
     [SerializeField] private Color headshotColor = Color.cyan;
@@ -56,10 +56,9 @@ public class CrosshairUI : MonoBehaviour
         float centerX = Screen.width / 2f;
         float centerY = Screen.height / 2f;
 
-        // Динамическое расширение прицела при scatter
-        float currentGap = baseGap;
-        if (gunController != null)
-        {
+        Vector2 aimPosition = RecoilController.GetAimScreenPosition();
+        DrawCrosshair(aimPosition.x, aimPosition.y);
+        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
             //currentGap += gunController.GetCurrentScatter() * scatterMultiplier;
         }
 
@@ -73,19 +72,19 @@ public class CrosshairUI : MonoBehaviour
 
         /* GUI.color = crosshairColor;
 
-         // Верхняя линия
+         // Г‚ГҐГ°ГµГ­ГїГї Г«ГЁГ­ГЁГї
          GUI.DrawTexture(new Rect(centerX - crosshairThickness / 2, centerY - currentGap - crosshairSize,
              crosshairThickness, crosshairSize), crosshairTexture);
 
-         // Нижняя линия
+         // ГЌГЁГ¦Г­ГїГї Г«ГЁГ­ГЁГї
          GUI.DrawTexture(new Rect(centerX - crosshairThickness / 2, centerY + currentGap,
              crosshairThickness, crosshairSize), crosshairTexture);
 
-         // Левая линия
+         // Г‹ГҐГўГ Гї Г«ГЁГ­ГЁГї
          GUI.DrawTexture(new Rect(centerX - currentGap - crosshairSize, centerY - crosshairThickness / 2,
              crosshairSize, crosshairThickness), crosshairTexture);
 
-         // Правая линия
+         // ГЏГ°Г ГўГ Гї Г«ГЁГ­ГЁГї
          GUI.DrawTexture(new Rect(centerX + currentGap, centerY - crosshairThickness / 2,
              crosshairSize, crosshairThickness), crosshairTexture);
 
