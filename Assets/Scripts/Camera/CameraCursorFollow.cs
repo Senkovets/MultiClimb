@@ -21,7 +21,7 @@ public class CameraCursorFollow : MonoBehaviour
 
     void LateUpdate()
     {
-        Vector2 mouse = Mouse.current.position.ReadValue();
+        Vector2 mouse = RecoilController.GetAimScreenPosition();
         Vector2 center = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
 
         Vector2 delta = (mouse - center) / center;
