@@ -4,30 +4,33 @@ using UnityEngine;
 public class NetworkProjectile : NetworkBehaviour
 {
     [Header("Movement")]
-    public float speed = 37.2f;
-    public float maxDistance = 100f;
+    [SerializeField] private float speed = 37.2f;
+    [SerializeField] private float maxDistance = 100f;
 
     [Header("Damage")]
-    public float damage = 25f;
+    [SerializeField] private float damage = 25f;
 
     [Header("Hit")]
     [SerializeField] private LayerMask hitLayers;
 
-    // Основные networked переменные
-    [Networked] private bool IsCritical { get; set; }
-    [Networked] private Vector3 Direction { get; set; }
-    [Networked] private Player Owner { get; set; }
-    [Networked] private TickTimer DespawnTimer { get; set; }
-    [Networked] private Vector3 SpawnPosition { get; set; }
-
     private const float BULLET_RADIUS = 0.05f;
 
-    // Для плавной интерполяции
+    // ===== Networked =====
+    [Networked] private Vector3 Direction { get; set; }
+    [Networked] private Vector3 SpawnPosition { get; set; }
+    [Networked] private Player Owner { get; set; }
+    [Networked] private bool IsCritical { get; set; }
+    [Networked] private bool HasHit { get; set; }
+    [Networked] private TickTimer DespawnTimer { get; set; }
+
+    // ===== Visual only =====
     private Vector3 visualPosition;
 
+    // ===== Init =====
     public void Init(Vector3 spawnPos, Vector3 dir, Player owner, bool isCritical)
     {
-        if (!HasStateAuthority) return;
+        if (!HasStateAuthority)
+            return;
 
         SpawnPosition = spawnPos;
         Direction = dir.normalized;
@@ -35,37 +38,30 @@ public class NetworkProjectile : NetworkBehaviour
         IsCritical = isCritical;
 
         transform.position = spawnPos;
-
-        Debug.Log("NetworkProjectile IsCritical: " + IsCritical);
+        visualPosition = spawnPos;
     }
-
 
     public override void Spawned()
     {
-        // ✅ КРИТИЧНО: Используем SpawnPosition если она задана
-        if (SpawnPosition != Vector3.zero)
-        {
-            transform.position = SpawnPosition;
-        }
+        transform.position = SpawnPosition;
+        visualPosition = SpawnPosition;
 
-        // КРИТИЧНО: инициализируем visualPosition для ВСЕХ клиентов
-        visualPosition = transform.position;
-
-        // 🔍 DEBUG
-        Debug.Log($"[Projectile] Spawned: Position={transform.position}, Direction={Direction}, HasAuthority={HasStateAuthority}");
-
-        // На клиентах Direction уже синхронизирован из [Networked]
         if (Direction.sqrMagnitude > 0.0001f)
             transform.rotation = Quaternion.LookRotation(Direction);
     }
 
+    // ===== LOGIC (StateAuthority only) =====
     public override void FixedUpdateNetwork()
     {
-        if (!HasStateAuthority) return;
+        if (!HasStateAuthority)
+            return;
 
-        if (DespawnTimer.Expired(Runner))
+        // если уже попали — ждём despawn
+        if (HasHit)
         {
-            Runner.Despawn(Object);
+            if (DespawnTimer.Expired(Runner))
+                Runner.Despawn(Object);
+
             return;
         }
 
@@ -73,7 +69,7 @@ public class NetworkProjectile : NetworkBehaviour
         Vector3 currentPos = transform.position;
         Vector3 nextPos = currentPos + Direction * step;
 
-        // КРИТИЧНО: Используем RaycastAll для проверки ВСЕХ попаданий
+        // ===== НАДЁЖНАЯ ПРОВЕРКА ПОПАДАНИЯ =====
         RaycastHit[] hits = Physics.SphereCastAll(
             currentPos,
             BULLET_RADIUS,
@@ -83,43 +79,28 @@ public class NetworkProjectile : NetworkBehaviour
             QueryTriggerInteraction.Ignore
         );
 
-        // Ищем ближайшее попадание
         if (hits.Length > 0)
         {
             RaycastHit closestHit = hits[0];
-            float closestDistance = hits[0].distance;
+            float minDistance = hits[0].distance;
 
             for (int i = 1; i < hits.Length; i++)
             {
-                if (hits[i].distance < closestDistance)
+                if (hits[i].distance < minDistance)
                 {
+                    minDistance = hits[i].distance;
                     closestHit = hits[i];
-                    closestDistance = hits[i].distance;
                 }
             }
 
-            // Попали в объект
-            transform.position = closestHit.point;
-
-            NetworkHealth health = closestHit.collider.GetComponentInParent<NetworkHealth>();
-
-            if (health != null)
-            {
-                float finalDamage = damage;
-
-                if (IsCritical)
-                    finalDamage *= 2f;
-
-                health.ApplyDamage(finalDamage, Owner);
-            }
-
-            DespawnTimer = TickTimer.CreateFromTicks(Runner, 1);
+            HandleHit(closestHit);
             return;
         }
 
-        // Проверка максимальной дистанции - используем SpawnPosition
+        // ===== Проверка дистанции =====
         if (Vector3.Distance(SpawnPosition, nextPos) >= maxDistance)
         {
+            HasHit = true;
             DespawnTimer = TickTimer.CreateFromTicks(Runner, 1);
             return;
         }
@@ -127,25 +108,42 @@ public class NetworkProjectile : NetworkBehaviour
         transform.position = nextPos;
     }
 
-    // ЭКСТРАПОЛЯЦИЯ - продолжаем движение между сетевыми апдейтами
-    public override void Render()
+    private void HandleHit(RaycastHit hit)
     {
-        // Проверка что Direction синхронизирован
-        if (Direction.sqrMagnitude < 0.0001f)
-            return;
+        HasHit = true;
 
-        // Двигаем визуал вперёд на полной скорости
-        visualPosition += Direction * speed * Time.deltaTime;
+        // фиксируем позицию попадания
+        transform.position = hit.point;
+        visualPosition = hit.point;
 
-        // Корректируем если слишком далеко ушли от сетевой позиции
-        float drift = Vector3.Distance(visualPosition, transform.position);
-        if (drift > 1f) // Если отклонение больше 1 метра
+        NetworkHealth health = hit.collider.GetComponentInParent<NetworkHealth>();
+        if (health != null)
         {
-            // Плавная коррекция вместо резкого телепорта
-            visualPosition = Vector3.Lerp(visualPosition, transform.position, 0.5f);
+            float finalDamage = IsCritical ? damage * 2f : damage;
+            health.ApplyDamage(finalDamage, Owner);
         }
 
-        // ИСПРАВЛЕНИЕ: используем position напрямую, а не localPosition
+        DespawnTimer = TickTimer.CreateFromTicks(Runner, 1);
+    }
+
+    // ===== VISUAL (All clients) =====
+    public override void Render()
+    {
+        if (HasHit || Direction.sqrMagnitude < 0.0001f)
+            return;
+
+        visualPosition += Direction * speed * Time.deltaTime;
+
+        float drift = Vector3.Distance(visualPosition, transform.position);
+        if (drift > 0.5f)
+        {
+            visualPosition = Vector3.Lerp(
+                visualPosition,
+                transform.position,
+                0.5f
+            );
+        }
+
         transform.position = visualPosition;
     }
 }
