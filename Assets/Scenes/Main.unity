@@ -210,6 +210,7 @@ GameObject:
   - component: {fileID: 330585555}
   - component: {fileID: 330585556}
   - component: {fileID: 330585557}
+  - component: {fileID: 330585558}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -360,13 +361,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceb8433a15cbb9740b8c7b3fa52adcaf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  crosshairColor: {r: 1, g: 1, b: 1, a: 1}
-  crosshairSize: 10
   size: 10
   thickness: 2
-  crosshairThickness: 2
   baseGap: 5
-  scatterMultiplier: 5
+  defaultColor: {r: 1, g: 1, b: 1, a: 1}
   headshotColor: {r: 0, g: 1, b: 1, a: 1}
   aimDistance: 100
   hitboxLayers:
@@ -584,6 +582,19 @@ MonoBehaviour:
   _cameraShaker: {fileID: 0}
   _cameraCursorFollow: {fileID: 0}
   _VCamera: {fileID: 0}
+--- !u!114 &330585558
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b64a5a9886763b24f9bc695dbbae0789, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pauseKey: 60
 --- !u!1001 &399997349
 PrefabInstance:
   m_ObjectHideFlags: 0

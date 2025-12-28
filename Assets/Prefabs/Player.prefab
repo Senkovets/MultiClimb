@@ -1231,6 +1231,7 @@ GameObject:
   - component: {fileID: 5512796162034683420}
   - component: {fileID: -5356276029104326098}
   - component: {fileID: 2526720971422132695}
+  - component: {fileID: 5393328817202911390}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -1499,6 +1500,35 @@ CapsuleCollider:
   m_Height: 1.7
   m_Direction: 1
   m_Center: {x: 0, y: 1, z: 0}
+--- !u!114 &5393328817202911390
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9040168462585498880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00bee66b103b6a84a999e3e5ab1e52ba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  verticalRange: {x: 6, y: 12}
+  horizontalRange: {x: -4, y: 4}
+  firstShotMultiplier: 1.5
+  followSpeed: 18
+  returnSpeed: 10
+  maxRecoilDistance: 180
+  usePattern: 0
+  horizontalPattern:
+  - -2
+  - 2
+  - -3
+  - 3
+  - -2
+  - 2
+  gunController: {fileID: 5512796162034683420}
+  fallbackFireRate: 0.1
+  fallbackFireMode: 0
 --- !u!1001 &4218172695574425155
 PrefabInstance:
   m_ObjectHideFlags: 0
