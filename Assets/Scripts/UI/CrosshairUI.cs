@@ -22,12 +22,10 @@ public class CrosshairUI : MonoBehaviour
 
     [Header("Crosshair Settings")]
     public Color crosshairColor = Color.white;
-    public float crosshairSize = 10f;
     public float size = 10f;
     public float thickness = 2f;
-    public float crosshairThickness = 2f;
     public float baseGap = 5f;
-    public float scatterMultiplier = 5f; // Íàñêîëüêî ðàñõîäèòñÿ ïðè scatter
+    public float scatterMultiplier = 5f; // насколько расходится при scatter (пока не используется)
 
     [Header("Headshot Highlight")]
     [SerializeField] private Color headshotColor = Color.cyan;
@@ -39,67 +37,48 @@ public class CrosshairUI : MonoBehaviour
     private Texture2D crosshairTexture;
     private MinimalGunController gunController;
 
-    void Start()
+    private void Start()
     {
         Singleton = this;
         cam = Camera.main;
 
         crosshairTexture = new Texture2D(1, 1);
-        crosshairTexture.SetPixel(0, 0, crosshairColor);
+        crosshairTexture.SetPixel(0, 0, Color.white); // текстура белая, цвет задаём через GUI.color
         crosshairTexture.Apply();
 
         gunController = FindObjectOfType<MinimalGunController>();
     }
 
-    void OnGUI()
+    private void OnGUI()
     {
-        float centerX = Screen.width / 2f;
-        float centerY = Screen.height / 2f;
-
-        Vector2 aimPosition = RecoilController.GetAimScreenPosition();
-        DrawCrosshair(aimPosition.x, aimPosition.y);
-        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
-            //currentGap += gunController.GetCurrentScatter() * scatterMultiplier;
-        }
-
+        // 1) Обновляем цвет прицела (хедшот / обычный)
         crosshairColor = IsAimingAtHead() ? headshotColor : Color.white;
 
-
+        // 2) Рисуем прицел в позиции мыши
         float mouseX = Input.mousePosition.x;
         float mouseY = Input.mousePosition.y;
-
         DrawCrosshair(mouseX, mouseY);
 
-        /* GUI.color = crosshairColor;
-
-         // Âåðõíÿÿ ëèíèÿ
-         GUI.DrawTexture(new Rect(centerX - crosshairThickness / 2, centerY - currentGap - crosshairSize,
-             crosshairThickness, crosshairSize), crosshairTexture);
-
-         // Íèæíÿÿ ëèíèÿ
-         GUI.DrawTexture(new Rect(centerX - crosshairThickness / 2, centerY + currentGap,
-             crosshairThickness, crosshairSize), crosshairTexture);
-
-         // Ëåâàÿ ëèíèÿ
-         GUI.DrawTexture(new Rect(centerX - currentGap - crosshairSize, centerY - crosshairThickness / 2,
-             crosshairSize, crosshairThickness), crosshairTexture);
-
-         // Ïðàâàÿ ëèíèÿ
-         GUI.DrawTexture(new Rect(centerX + currentGap, centerY - crosshairThickness / 2,
-             crosshairSize, crosshairThickness), crosshairTexture);
-
-         GUI.color = Color.white;*/
+        // Если хочешь рисовать именно в кастомной точке аима:
+        // Vector2 aimPos = RecoilController.GetAimScreenPosition();
+        // DrawCrosshair(aimPos.x, aimPos.y);
     }
+
     public void DrawCrosshair(float x, float y)
     {
+        // GUI координаты: (0,0) вверху слева, а Input.mousePosition (0,0) снизу слева
         y = Screen.height - y;
 
         GUI.color = crosshairColor;
 
-        GUI.DrawTexture(new Rect(x - thickness / 2, y - baseGap - size, thickness, size), crosshairTexture);
-        GUI.DrawTexture(new Rect(x - thickness / 2, y + baseGap, thickness, size), crosshairTexture);
-        GUI.DrawTexture(new Rect(x - baseGap - size, y - thickness / 2, size, thickness), crosshairTexture);
-        GUI.DrawTexture(new Rect(x + baseGap, y - thickness / 2, size, thickness), crosshairTexture);
+        // Верх
+        GUI.DrawTexture(new Rect(x - thickness / 2f, y - baseGap - size, thickness, size), crosshairTexture);
+        // Низ
+        GUI.DrawTexture(new Rect(x - thickness / 2f, y + baseGap, thickness, size), crosshairTexture);
+        // Лево
+        GUI.DrawTexture(new Rect(x - baseGap - size, y - thickness / 2f, size, thickness), crosshairTexture);
+        // Право
+        GUI.DrawTexture(new Rect(x + baseGap, y - thickness / 2f, size, thickness), crosshairTexture);
 
         GUI.color = Color.white;
     }
@@ -111,12 +90,7 @@ public class CrosshairUI : MonoBehaviour
 
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 
-        if (!Physics.Raycast(
-                ray,
-                out RaycastHit hit,
-                aimDistance,
-                hitboxLayers,
-                QueryTriggerInteraction.Collide))
+        if (!Physics.Raycast(ray, out RaycastHit hit, aimDistance, hitboxLayers, QueryTriggerInteraction.Collide))
             return false;
 
         if (!hit.collider.TryGetComponent(out PlayerHitbox hitbox))
@@ -124,6 +98,4 @@ public class CrosshairUI : MonoBehaviour
 
         return hitbox.Type == HitboxType.Head;
     }
-
-
 }
