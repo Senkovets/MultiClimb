@@ -96,6 +96,7 @@ public class Player : NetworkBehaviour
         }
     }
 
+        Ray ray = Camera.main.ScreenPointToRay(RecoilController.GetAimScreenPosition());
     private Vector3 GetMouseWorldPosition()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);

@@ -2,124 +2,114 @@ using UnityEngine;
 
 public class CrosshairUI : MonoBehaviour
 {
-    // =========================
-    // Singleton
-    // =========================
     public static CrosshairUI Singleton
     {
         get => _singleton;
-        private set => _singleton = value;
+        set
+        {
+            if (value == null)
+                _singleton = null;
+            else if (_singleton == null)
+                _singleton = value;
+            else if (_singleton != value)
+            {
+                Destroy(value);
+                Debug.LogError($"There should only ever be one instance of {nameof(CrosshairUI)}!");
+            }
+        }
     }
     private static CrosshairUI _singleton;
 
-    // =========================
-    // Crosshair settings
-    // =========================
     [Header("Crosshair Settings")]
-    [SerializeField] private float size = 10f;
-    [SerializeField] private float thickness = 2f;
-    [SerializeField] private float baseGap = 5f;
+    public Color crosshairColor = Color.white;
+    public float crosshairSize = 10f;
+    public float size = 10f;
+    public float thickness = 2f;
+    public float crosshairThickness = 2f;
+    public float baseGap = 5f;
+    public float scatterMultiplier = 5f; // Íàñêîëüêî ðàñõîäèòñÿ ïðè scatter
 
-    [SerializeField] private Color defaultColor = Color.white;
-
-    // =========================
-    // Headshot highlight
-    // =========================
     [Header("Headshot Highlight")]
     [SerializeField] private Color headshotColor = Color.cyan;
     [SerializeField] private float aimDistance = 100f;
     [SerializeField] private LayerMask hitboxLayers;
 
-    // =========================
-    // Runtime
-    // =========================
     private Camera cam;
-    private Texture2D pixel;
-    private Color currentColor;
 
-    // =========================
-    // Unity lifecycle
-    // =========================
-    private void Awake()
+    private Texture2D crosshairTexture;
+    private MinimalGunController gunController;
+
+    void Start()
     {
-        if (Singleton != null && Singleton != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
         Singleton = this;
-    }
-
-    private void Start()
-    {
         cam = Camera.main;
 
-        pixel = new Texture2D(1, 1);
-        pixel.SetPixel(0, 0, Color.white);
-        pixel.Apply();
+        crosshairTexture = new Texture2D(1, 1);
+        crosshairTexture.SetPixel(0, 0, crosshairColor);
+        crosshairTexture.Apply();
+
+        gunController = FindObjectOfType<MinimalGunController>();
     }
 
-    private void OnGUI()
+    void OnGUI()
     {
-        if (cam == null)
-            return;
+        float centerX = Screen.width / 2f;
+        float centerY = Screen.height / 2f;
 
-        // выбор цвета прицела
-        currentColor = IsAimingAtHead()
-            ? headshotColor
-            : defaultColor;
+        Vector2 aimPosition = RecoilController.GetAimScreenPosition();
+        DrawCrosshair(aimPosition.x, aimPosition.y);
+        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
+            //currentGap += gunController.GetCurrentScatter() * scatterMultiplier;
+        }
 
-        // позиция прицела берётся из recoil controller
-        Vector2 aimScreenPos = RecoilController.GetAimScreenPosition();
+        crosshairColor = IsAimingAtHead() ? headshotColor : Color.white;
 
-        DrawCrosshair(aimScreenPos);
+
+        float mouseX = Input.mousePosition.x;
+        float mouseY = Input.mousePosition.y;
+
+        DrawCrosshair(mouseX, mouseY);
+
+        /* GUI.color = crosshairColor;
+
+         // Âåðõíÿÿ ëèíèÿ
+         GUI.DrawTexture(new Rect(centerX - crosshairThickness / 2, centerY - currentGap - crosshairSize,
+             crosshairThickness, crosshairSize), crosshairTexture);
+
+         // Íèæíÿÿ ëèíèÿ
+         GUI.DrawTexture(new Rect(centerX - crosshairThickness / 2, centerY + currentGap,
+             crosshairThickness, crosshairSize), crosshairTexture);
+
+         // Ëåâàÿ ëèíèÿ
+         GUI.DrawTexture(new Rect(centerX - currentGap - crosshairSize, centerY - crosshairThickness / 2,
+             crosshairSize, crosshairThickness), crosshairTexture);
+
+         // Ïðàâàÿ ëèíèÿ
+         GUI.DrawTexture(new Rect(centerX + currentGap, centerY - crosshairThickness / 2,
+             crosshairSize, crosshairThickness), crosshairTexture);
+
+         GUI.color = Color.white;*/
     }
-
-    // =========================
-    // Drawing
-    // =========================
-    private void DrawCrosshair(Vector2 screenPos)
+    public void DrawCrosshair(float x, float y)
     {
-        float x = screenPos.x;
-        float y = Screen.height - screenPos.y;
+        y = Screen.height - y;
 
-        GUI.color = currentColor;
+        GUI.color = crosshairColor;
 
-        // верх
-        GUI.DrawTexture(
-            new Rect(x - thickness / 2f, y - baseGap - size, thickness, size),
-            pixel
-        );
-
-        // низ
-        GUI.DrawTexture(
-            new Rect(x - thickness / 2f, y + baseGap, thickness, size),
-            pixel
-        );
-
-        // лево
-        GUI.DrawTexture(
-            new Rect(x - baseGap - size, y - thickness / 2f, size, thickness),
-            pixel
-        );
-
-        // право
-        GUI.DrawTexture(
-            new Rect(x + baseGap, y - thickness / 2f, size, thickness),
-            pixel
-        );
+        GUI.DrawTexture(new Rect(x - thickness / 2, y - baseGap - size, thickness, size), crosshairTexture);
+        GUI.DrawTexture(new Rect(x - thickness / 2, y + baseGap, thickness, size), crosshairTexture);
+        GUI.DrawTexture(new Rect(x - baseGap - size, y - thickness / 2, size, thickness), crosshairTexture);
+        GUI.DrawTexture(new Rect(x + baseGap, y - thickness / 2, size, thickness), crosshairTexture);
 
         GUI.color = Color.white;
     }
 
-    // =========================
-    // Headshot detection
-    // =========================
     private bool IsAimingAtHead()
     {
-        Vector2 aimScreenPos = RecoilController.GetAimScreenPosition();
-        Ray ray = cam.ScreenPointToRay(aimScreenPos);
+        if (cam == null)
+            return false;
+
+        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 
         if (!Physics.Raycast(
                 ray,
@@ -134,4 +124,6 @@ public class CrosshairUI : MonoBehaviour
 
         return hitbox.Type == HitboxType.Head;
     }
+
+
 }

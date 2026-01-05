@@ -27,9 +27,6 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 
     private void Awake()
     {
-        //Cursor.visible = false;
-
-
         if (hitboxLayers == 0)
         {
             int hitboxLayer = LayerMask.NameToLayer("Default");
