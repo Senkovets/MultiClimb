@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 3901588741947721621}
   - component: {fileID: 3523407342374443459}
   - component: {fileID: -1763246958840675323}
-  - component: {fileID: 491591123618536398}
   m_Layer: 7
   m_Name: NetworkProjectile
   m_TagString: Untagged
@@ -122,17 +121,3 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 3523407342374443459}
---- !u!114 &491591123618536398
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7949962657928002599}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6701241c5abb4d54dbce93e4b39b5c8f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetPosition: {x: -8.682586, y: -0.00000020861626, z: -11.037634}
-  checkRadius: 1
