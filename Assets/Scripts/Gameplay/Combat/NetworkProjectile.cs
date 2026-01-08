@@ -4,25 +4,29 @@ using UnityEngine;
 public class NetworkProjectile : NetworkBehaviour
 {
     [Header("Movement")]
-    public float speed = 37.2f;
-    public float maxDistance = 100f;
+    [SerializeField] private float speed = 37.2f;
+    [SerializeField] private float maxDistance = 100f;
 
     [Header("Damage")]
-    public float damage = 25f;
+    [SerializeField] private float damage = 25f;
 
     [Header("Hit")]
     [SerializeField] private LayerMask hitLayers;
 
-    // Основные networked переменные
+    private const float BULLET_RADIUS = 0.05f;
+
+    // Networked
     [Networked] private bool IsCritical { get; set; }
     [Networked] private Vector3 Direction { get; set; }
     [Networked] private Player Owner { get; set; }
-    [Networked] private TickTimer DespawnTimer { get; set; }
     [Networked] private Vector3 SpawnPosition { get; set; }
+    [Networked] private bool HasHit { get; set; }
+    [Networked] private TickTimer DespawnTimer { get; set; }
 
-    private const float BULLET_RADIUS = 0.05f;
+    // Ключевое: авторитетная позиция с сервера
+    [Networked] private Vector3 NetPos { get; set; }
 
-    // Для плавной интерполяции
+    // Visual-only
     private Vector3 visualPosition;
 
     public void Init(Vector3 spawnPos, Vector3 dir, Player owner, bool isCritical)
@@ -34,27 +38,22 @@ public class NetworkProjectile : NetworkBehaviour
         Owner = owner;
         IsCritical = isCritical;
 
+        HasHit = false;
+        DespawnTimer = TickTimer.None;
+
+        NetPos = spawnPos;
         transform.position = spawnPos;
-
-        Debug.Log("NetworkProjectile IsCritical: " + IsCritical);
+        visualPosition = spawnPos;
     }
-
 
     public override void Spawned()
     {
-        // ✅ КРИТИЧНО: Используем SpawnPosition если она задана
-        if (SpawnPosition != Vector3.zero)
-        {
-            transform.position = SpawnPosition;
-        }
+        // На всех: стартуем от NetPos/SpawnPosition
+        Vector3 start = (NetPos != default) ? NetPos : SpawnPosition;
 
-        // КРИТИЧНО: инициализируем visualPosition для ВСЕХ клиентов
-        visualPosition = transform.position;
+        transform.position = start;
+        visualPosition = start;
 
-        // 🔍 DEBUG
-        Debug.Log($"[Projectile] Spawned: Position={transform.position}, Direction={Direction}, HasAuthority={HasStateAuthority}");
-
-        // На клиентах Direction уже синхронизирован из [Networked]
         if (Direction.sqrMagnitude > 0.0001f)
             transform.rotation = Quaternion.LookRotation(Direction);
     }
@@ -69,11 +68,13 @@ public class NetworkProjectile : NetworkBehaviour
             return;
         }
 
+        if (HasHit)
+            return;
+
         float step = speed * Runner.DeltaTime;
-        Vector3 currentPos = transform.position;
+        Vector3 currentPos = NetPos; // используем сетевую позицию как источник истины
         Vector3 nextPos = currentPos + Direction * step;
 
-        // КРИТИЧНО: Используем RaycastAll для проверки ВСЕХ попаданий
         RaycastHit[] hits = Physics.SphereCastAll(
             currentPos,
             BULLET_RADIUS,
@@ -83,7 +84,6 @@ public class NetworkProjectile : NetworkBehaviour
             QueryTriggerInteraction.Ignore
         );
 
-        // Ищем ближайшее попадание
         if (hits.Length > 0)
         {
             RaycastHit closestHit = hits[0];
@@ -98,54 +98,76 @@ public class NetworkProjectile : NetworkBehaviour
                 }
             }
 
-            // Попали в объект
-            transform.position = closestHit.point;
+            HasHit = true;
 
-            NetworkHealth health = closestHit.collider.GetComponentInParent<NetworkHealth>();
+            // фиксируем позицию попадания
+            NetPos = closestHit.point;
+            transform.position = NetPos;
+
+            // урон
+            NetworkHealth health = null;
+            if (!closestHit.collider.TryGetComponent(out health))
+                closestHit.collider.GetComponentInParent<NetworkHealth>()?.TryGetComponent(out health);
 
             if (health != null)
             {
-                float finalDamage = damage;
-
-                if (IsCritical)
-                    finalDamage *= 2f;
-
+                float finalDamage = IsCritical ? damage * 2f : damage;
                 health.ApplyDamage(finalDamage, Owner);
             }
 
+            // 1 тик на синхрон, затем despawn
             DespawnTimer = TickTimer.CreateFromTicks(Runner, 1);
             return;
         }
 
-        // Проверка максимальной дистанции - используем SpawnPosition
         if (Vector3.Distance(SpawnPosition, nextPos) >= maxDistance)
         {
+            HasHit = true;
+            NetPos = nextPos;
+            transform.position = NetPos;
             DespawnTimer = TickTimer.CreateFromTicks(Runner, 1);
             return;
         }
 
-        transform.position = nextPos;
+        NetPos = nextPos;
+        transform.position = NetPos;
     }
 
-    // ЭКСТРАПОЛЯЦИЯ - продолжаем движение между сетевыми апдейтами
     public override void Render()
     {
-        // Проверка что Direction синхронизирован
+        if (HasStateAuthority)
+            return;
+
+        // если уже попали — сразу фиксируемся в точке хита без "киселя"
+        if (HasHit)
+        {
+            visualPosition = NetPos;
+            transform.position = visualPosition;
+            return;
+        }
+
         if (Direction.sqrMagnitude < 0.0001f)
             return;
 
-        // Двигаем визуал вперёд на полной скорости
-        visualPosition += Direction * speed * Time.deltaTime;
+        float dt = Time.deltaTime;
 
-        // Корректируем если слишком далеко ушли от сетевой позиции
-        float drift = Vector3.Distance(visualPosition, transform.position);
-        if (drift > 1f) // Если отклонение больше 1 метра
-        {
-            // Плавная коррекция вместо резкого телепорта
-            visualPosition = Vector3.Lerp(visualPosition, transform.position, 0.5f);
-        }
+        // 1) постоянная визуальная скорость
+        visualPosition += Direction * speed * dt;
 
-        // ИСПРАВЛЕНИЕ: используем position напрямую, а не localPosition
+        // 2) линейная коррекция к серверной позиции (без экспоненциального замедления)
+        // чем больше correctionSpeed — тем быстрее подтяжка, но без "киселя"
+        const float correctionSpeed = 80f; // подстрой под свой тикрейт/скорость
+        Vector3 corrected = Vector3.MoveTowards(visualPosition, NetPos, correctionSpeed * dt);
+
+        // 3) защита от слишком большого рассинхрона (телепорт при большом дрейфе)
+        const float snapDistance = 1.5f;
+        if ((corrected - NetPos).sqrMagnitude > snapDistance * snapDistance)
+            corrected = NetPos;
+
+        visualPosition = corrected;
         transform.position = visualPosition;
+
+        transform.rotation = Quaternion.LookRotation(Direction);
     }
+
 }

@@ -41,7 +41,11 @@ public class NetworkHealth : NetworkBehaviour
         if (attacker != null && attacker != owner)
             attacker.AddKill();
 
-        owner.Respawn();
+        if(owner != null)
+        {
+            owner.Respawn();
+        }
+        
     }
 
     public void ResetHealth()
