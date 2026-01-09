@@ -1,4 +1,4 @@
-// NetInput.cs (или где у тебя объявлен NetInput / InputButton)
+// NetInput.cs
 using Fusion;
 using UnityEngine;
 
@@ -18,8 +18,8 @@ public struct NetInput : INetworkInput
     public Vector2 Direction;
 
     public bool IsCriticalAim;
-    public float LookYaw;       // абсолютный Yaw (градусы)
-    public Vector3 AimDirection;
+    public float LookYaw;          // абсолютный yaw (градусы)
+    public Vector3 AimDirection;   // нормализованный XZ
 
     public AbilityMode AbilityMode;
 }

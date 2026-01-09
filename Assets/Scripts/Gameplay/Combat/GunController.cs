@@ -1,4 +1,5 @@
-﻿using Fusion;
+﻿// GunController.cs
+using Fusion;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -20,11 +21,16 @@ public class GunController : NetworkBehaviour
     [Header("Visual (NOT network)")]
     [SerializeField] private TracerFx tracerPrefab;
 
+    [Header("Local Predicted Tracer")]
+    [SerializeField] private bool localTracerUseSpherecast = true;
+    [SerializeField] private float localTracerRadius = 0.06f; // чуть больше хитбокса, чтобы не "промахиваться" визуально
+
     [Networked] private int NextFireTick { get; set; }
     [Networked] private NetworkButtons PreviousButtons { get; set; }
 
-    private int _fireCooldownTicks;
+    private int _cooldownTicks;
 
+    // ===== pending damage на сервере =====
     private struct PendingDamage
     {
         public TickTimer Timer;
@@ -36,59 +42,33 @@ public class GunController : NetworkBehaviour
 
     private readonly List<PendingDamage> _pending = new();
 
+    // ===== локальный визуал стрелка (Plan A) =====
+    private int _nextLocalFxTick = -1;
+
     public override void Spawned()
     {
+        _cooldownTicks = Mathf.Max(1, Mathf.CeilToInt(Mathf.Max(0.01f, fireRate) * Runner.TickRate));
+
         if (HasStateAuthority)
-        {
-            _fireCooldownTicks = Mathf.Max(1, Mathf.CeilToInt(fireRate * Runner.TickRate));
             NextFireTick = Runner.Tick;
-        }
-    }
-    private void Update()
-    {
-        if (Runner == null) return;
-        if (!Runner.IsRunning) return;
-
-        // ТЕСТ: на хосте по T создаём трассер локально
-        if (Runner.IsServer && Input.GetKeyDown(KeyCode.T))
-        {
-            if (tracerPrefab == null || gunMuzzle == null) return;
-
-            var fx = Instantiate(tracerPrefab);
-            fx.Play(gunMuzzle.position, gunMuzzle.position + transform.forward * 10f, 0.05f);
-
-            Debug.Log("[Tracer TEST] spawned locally on host");
-        }
     }
 
     public override void FixedUpdateNetwork()
     {
-        //Debug.Log($"[Gun] tick={Runner.Tick} stateAuth={HasStateAuthority} server={Runner.IsServer}");
-
         if (!HasStateAuthority)
             return;
 
-        bool gotInput = GetInput(out NetInput input);
-       // Debug.Log($"[Gun] gotInput={gotInput}");
-
-        if (!gotInput)
+        if (!GetInput(out NetInput input))
             return;
-
-        bool fireHeld = input.Buttons.IsSet((int)InputButton.Fire);
-        bool firePressed = input.Buttons.WasPressed(PreviousButtons, (int)InputButton.Fire);
-        //Debug.Log($"[Gun] fireHeld={fireHeld} firePressed={firePressed} mode={fireMode} nextTick={NextFireTick}");
-
 
         ProcessPendingDamage();
 
         bool wantFire = false;
-
         switch (fireMode)
         {
             case FireMode.Auto:
                 wantFire = input.Buttons.IsSet((int)InputButton.Fire);
                 break;
-
             case FireMode.Semi:
             case FireMode.Bolt:
                 wantFire = input.Buttons.WasPressed(PreviousButtons, (int)InputButton.Fire);
@@ -103,17 +83,102 @@ public class GunController : NetworkBehaviour
         if (Runner.Tick < NextFireTick)
             return;
 
-        FireHitscan(input);
+        FireHitscan_Server(input);
 
-        NextFireTick = Runner.Tick + _fireCooldownTicks;
+        NextFireTick = Runner.Tick + _cooldownTicks;
         if (fireMode == FireMode.Bolt)
             NextFireTick += boltReloadTicks;
     }
 
-    private void FireHitscan(NetInput input)
+    public override void Render()
     {
-        Debug.Log($"[Gun] FireHitscan ENTER muzzle={(gunMuzzle != null)} tracerPrefab={(tracerPrefab != null)} aimDir={input.AimDirection}");
+        // Plan A: стрелок видит ТОЛЬКО локальный FX (мгновенно), серверный FX ему не показываем
+        if (!HasInputAuthority)
+            return;
 
+        if (Runner == null || tracerPrefab == null || gunMuzzle == null)
+            return;
+
+        var im = Runner.GetComponent<InputManager>();
+        if (im == null)
+            return;
+
+        NetInput input = im.LastLocalInput;
+
+        bool fireHeld = input.Buttons.IsSet((int)InputButton.Fire);
+
+        if (!fireHeld)
+        {
+            _nextLocalFxTick = -1;
+            return;
+        }
+
+        int tick = Runner.Tick;
+
+        // локальный тик-гейт совпадает с серверным по cooldownTicks
+        if (_nextLocalFxTick < 0)
+            _nextLocalFxTick = tick;
+
+        if (fireMode == FireMode.Semi || fireMode == FireMode.Bolt)
+        {
+            if (tick != _nextLocalFxTick)
+                return;
+
+            _nextLocalFxTick = int.MaxValue; // до отпускания
+        }
+        else
+        {
+            if (tick < _nextLocalFxTick)
+                return;
+
+            _nextLocalFxTick = tick + _cooldownTicks;
+            if (fireMode == FireMode.Bolt)
+                _nextLocalFxTick += boltReloadTicks;
+        }
+
+        Vector3 dir = input.AimDirection;
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f)
+            return;
+
+        dir.Normalize();
+
+        SpawnLocalPredictedTracer(dir);
+    }
+
+    private void SpawnLocalPredictedTracer(Vector3 dir)
+    {
+        Vector3 start = gunMuzzle.position;
+
+        Vector3 end = start + dir * maxDistance;
+        float distance = maxDistance;
+
+        // Локальная PhysX-проверка: если попали — обрываем трейсер на hit.point
+        if (localTracerUseSpherecast)
+        {
+            if (Physics.SphereCast(start, localTracerRadius, dir, out RaycastHit hit, maxDistance, hitLayers, QueryTriggerInteraction.Ignore))
+            {
+                end = hit.point;
+                distance = hit.distance;
+            }
+        }
+        else
+        {
+            if (Physics.Raycast(start, dir, out RaycastHit hit, maxDistance, hitLayers, QueryTriggerInteraction.Ignore))
+            {
+                end = hit.point;
+                distance = hit.distance;
+            }
+        }
+
+        float travelTime = Mathf.Max(0.02f, distance / Mathf.Max(0.001f, bulletSpeed));
+
+        TracerFx fx = Instantiate(tracerPrefab);
+        fx.Play(start, end, travelTime);
+    }
+
+    private void FireHitscan_Server(NetInput input)
+    {
         if (gunMuzzle == null)
             return;
 
@@ -121,9 +186,6 @@ public class GunController : NetworkBehaviour
 
         Vector3 dir = input.AimDirection;
         dir.y = 0f;
-
-        Debug.Log($"[Gun] dir after y=0 : {dir} sqr={dir.sqrMagnitude}");
-
         if (dir.sqrMagnitude < 0.0001f)
             return;
 
@@ -149,10 +211,8 @@ public class GunController : NetworkBehaviour
         {
             endPoint = hit.Point;
 
-            // ВАЖНО: hit.Hitbox.Root имеет тип HitboxRoot, а не NetworkObject
             if (hit.Hitbox != null && hit.Hitbox.Root != null)
             {
-                // Берём NetworkObject с того же объекта, где стоит HitboxRoot
                 targetObj = hit.Hitbox.Root.GetComponent<NetworkObject>();
                 if (targetObj == null)
                     targetObj = hit.Hitbox.Root.GetComponentInParent<NetworkObject>();
@@ -168,12 +228,10 @@ public class GunController : NetworkBehaviour
         }
 
         float distance = Vector3.Distance(origin, endPoint);
-        float travelTime = (bulletSpeed > 0.001f) ? (distance / bulletSpeed) : 0f;
+        float travelTime = Mathf.Max(0.02f, distance / Mathf.Max(0.001f, bulletSpeed));
         int travelTicks = Mathf.Max(1, Mathf.RoundToInt(travelTime * Runner.TickRate));
 
-        Debug.Log($"[Gun] calling RPC_SpawnTracer start={origin} end={endPoint} ticks={travelTicks}");
-        RPC_SpawnTracer(origin, endPoint, travelTicks);
-
+        RPC_SpawnTracerConfirmed(origin, endPoint, travelTicks);
 
         if (didHit && targetObj != null && targetObj.IsValid)
         {
@@ -203,7 +261,6 @@ public class GunController : NetworkBehaviour
                 continue;
 
             NetworkHealth health = null;
-
             if (!pd.Target.TryGetComponent(out health))
                 health = pd.Target.GetComponentInParent<NetworkHealth>();
 
@@ -216,19 +273,18 @@ public class GunController : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_SpawnTracer(Vector3 start, Vector3 end, int travelTicks)
+    private void RPC_SpawnTracerConfirmed(Vector3 start, Vector3 end, int travelTicks)
     {
-        Debug.Log($"[Tracer RPC] received. prefab={(tracerPrefab != null)} start={start} end={end} ticks={travelTicks}");
-
-        if (tracerPrefab == null)
+        // Plan A: стрелку подтверждённый FX НЕ показываем (иначе двойной трассер)
+        if (HasInputAuthority)
             return;
 
-        float duration = Mathf.Max(0.01f, travelTicks / (float)Runner.TickRate);
+        if (tracerPrefab == null || Runner == null)
+            return;
+
+        float duration = Mathf.Max(0.02f, travelTicks / (float)Runner.TickRate);
 
         TracerFx fx = Instantiate(tracerPrefab);
-        Debug.Log($"[Tracer RPC] instantiated {fx}");
-
         fx.Play(start, end, duration);
     }
-
 }
