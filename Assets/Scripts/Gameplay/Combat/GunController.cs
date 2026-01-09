@@ -1,4 +1,5 @@
 ﻿using Fusion;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GunController : NetworkBehaviour
@@ -7,39 +8,87 @@ public class GunController : NetworkBehaviour
     public float fireRate = 0.1f;
     public FireMode fireMode = FireMode.Auto;
     public int boltReloadTicks = 60;
-    [SerializeField] private NetworkProjectile projectilePrefab;
-    public Transform gunMuzzle;
+
+    [SerializeField] private Transform gunMuzzle;
+
+    [Header("Hitscan + Travel Time")]
+    [SerializeField] private float bulletSpeed = 60f;
+    [SerializeField] private float maxDistance = 200f;
+    [SerializeField] private float damage = 25f;
+    [SerializeField] private LayerMask hitLayers;
+
+    [Header("Visual (NOT network)")]
+    [SerializeField] private TracerFx tracerPrefab;
 
     [Networked] private int NextFireTick { get; set; }
     [Networked] private NetworkButtons PreviousButtons { get; set; }
 
-    public LayerMask groundLayer;
+    private int _fireCooldownTicks;
 
-    private int fireCooldownTicks;
+    private struct PendingDamage
+    {
+        public TickTimer Timer;
+        public NetworkObject Target;
+        public float Damage;
+        public bool IsCritical;
+        public Player Owner;
+    }
+
+    private readonly List<PendingDamage> _pending = new();
 
     public override void Spawned()
     {
         if (HasStateAuthority)
         {
-            fireCooldownTicks = Mathf.CeilToInt(fireRate / Runner.DeltaTime);
+            _fireCooldownTicks = Mathf.Max(1, Mathf.CeilToInt(fireRate * Runner.TickRate));
             NextFireTick = Runner.Tick;
+        }
+    }
+    private void Update()
+    {
+        if (Runner == null) return;
+        if (!Runner.IsRunning) return;
+
+        // ТЕСТ: на хосте по T создаём трассер локально
+        if (Runner.IsServer && Input.GetKeyDown(KeyCode.T))
+        {
+            if (tracerPrefab == null || gunMuzzle == null) return;
+
+            var fx = Instantiate(tracerPrefab);
+            fx.Play(gunMuzzle.position, gunMuzzle.position + transform.forward * 10f, 0.05f);
+
+            Debug.Log("[Tracer TEST] spawned locally on host");
         }
     }
 
     public override void FixedUpdateNetwork()
     {
-        if (!GetInput(out NetInput input))
-            return;
+        //Debug.Log($"[Gun] tick={Runner.Tick} stateAuth={HasStateAuthority} server={Runner.IsServer}");
 
         if (!HasStateAuthority)
             return;
 
+        bool gotInput = GetInput(out NetInput input);
+       // Debug.Log($"[Gun] gotInput={gotInput}");
+
+        if (!gotInput)
+            return;
+
+        bool fireHeld = input.Buttons.IsSet((int)InputButton.Fire);
+        bool firePressed = input.Buttons.WasPressed(PreviousButtons, (int)InputButton.Fire);
+        //Debug.Log($"[Gun] fireHeld={fireHeld} firePressed={firePressed} mode={fireMode} nextTick={NextFireTick}");
+
+
+        ProcessPendingDamage();
+
         bool wantFire = false;
+
         switch (fireMode)
         {
             case FireMode.Auto:
-                wantFire = input.Buttons.IsSet(InputButton.Fire);
+                wantFire = input.Buttons.IsSet((int)InputButton.Fire);
                 break;
+
             case FireMode.Semi:
             case FireMode.Bolt:
                 wantFire = input.Buttons.WasPressed(PreviousButtons, (int)InputButton.Fire);
@@ -54,76 +103,132 @@ public class GunController : NetworkBehaviour
         if (Runner.Tick < NextFireTick)
             return;
 
-        TryFire(input);
+        FireHitscan(input);
 
-        NextFireTick = Runner.Tick + fireCooldownTicks;
-
+        NextFireTick = Runner.Tick + _fireCooldownTicks;
         if (fireMode == FireMode.Bolt)
-        {
             NextFireTick += boltReloadTicks;
-        }
     }
 
-    private void TryFire(NetInput input)
+    private void FireHitscan(NetInput input)
     {
-        Vector3 dir = input.AimDirection.normalized;
-        bool isCritical = input.IsCriticalAim;
+        Debug.Log($"[Gun] FireHitscan ENTER muzzle={(gunMuzzle != null)} tracerPrefab={(tracerPrefab != null)} aimDir={input.AimDirection}");
 
-        if (dir.sqrMagnitude < 0.001f)
-        {
-            Debug.LogWarning($"[GunController] Invalid fire direction! AimDirection={input.AimDirection}");
+        if (gunMuzzle == null)
             return;
-        }
 
-        // ✅ КРИТИЧНО: Вычисляем позицию ДО спавна
-        Vector3 spawnPos = gunMuzzle.position;
+        Vector3 origin = gunMuzzle.position;
 
-        // 🔍 DEBUG: Логируем направление стрельбы
-        Debug.Log($"[GunController] Firing from {spawnPos} in direction {dir} | IsServer={HasStateAuthority}");
+        Vector3 dir = input.AimDirection;
+        dir.y = 0f;
 
-        Debug.Log($"[GunController] IsCriticalAim = {input.IsCriticalAim}");
+        Debug.Log($"[Gun] dir after y=0 : {dir} sqr={dir.sqrMagnitude}");
 
-        Runner.Spawn(
-            projectilePrefab,
-            spawnPos, // ← Передаём явно
-            Quaternion.LookRotation(dir),
+        if (dir.sqrMagnitude < 0.0001f)
+            return;
+
+        dir.Normalize();
+
+        bool isCritical = input.IsCriticalAim;
+        Player owner = GetComponent<Player>();
+
+        bool didHit = Runner.LagCompensation.Raycast(
+            origin,
+            dir,
+            maxDistance,
             Object.InputAuthority,
-            (runner, obj) =>
-            {
-                // ✅ ПЕРЕДАЁМ ПОЗИЦИЮ В INIT
-                obj.GetComponent<NetworkProjectile>().Init(spawnPos, dir, GetComponent<Player>(), isCritical);
-
-            }
+            out LagCompensatedHit hit,
+            hitLayers,
+            HitOptions.IncludePhysX | HitOptions.IgnoreInputAuthority
         );
-    }
 
-    public Vector3 GetDirection()
-    {
-        var cam = Camera.main;
-        if (cam == null || gunMuzzle == null)
+        Vector3 endPoint;
+        NetworkObject targetObj = null;
+
+        if (didHit)
         {
-            Debug.LogWarning("[GunController] Camera or gunMuzzle is null!");
-            return Vector3.forward;
+            endPoint = hit.Point;
+
+            // ВАЖНО: hit.Hitbox.Root имеет тип HitboxRoot, а не NetworkObject
+            if (hit.Hitbox != null && hit.Hitbox.Root != null)
+            {
+                // Берём NetworkObject с того же объекта, где стоит HitboxRoot
+                targetObj = hit.Hitbox.Root.GetComponent<NetworkObject>();
+                if (targetObj == null)
+                    targetObj = hit.Hitbox.Root.GetComponentInParent<NetworkObject>();
+            }
+            else if (hit.GameObject != null)
+            {
+                targetObj = hit.GameObject.GetComponentInParent<NetworkObject>();
+            }
+        }
+        else
+        {
+            endPoint = origin + dir * maxDistance;
         }
 
-        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
+        float distance = Vector3.Distance(origin, endPoint);
+        float travelTime = (bulletSpeed > 0.001f) ? (distance / bulletSpeed) : 0f;
+        int travelTicks = Mathf.Max(1, Mathf.RoundToInt(travelTime * Runner.TickRate));
 
-        Vector3 aimPoint;
-        if (Physics.Raycast(ray, out RaycastHit hit, 2000f, groundLayer))
-            aimPoint = hit.point;
-        else
-            aimPoint = ray.origin + ray.direction * 2000f;
+        Debug.Log($"[Gun] calling RPC_SpawnTracer start={origin} end={endPoint} ticks={travelTicks}");
+        RPC_SpawnTracer(origin, endPoint, travelTicks);
 
-        Vector3 cameraToAim = aimPoint - cam.transform.position;
 
-        if (Mathf.Abs(cameraToAim.y) < 0.0001f)
-            return gunMuzzle.forward;
-
-        float t = (gunMuzzle.position.y - cam.transform.position.y) / cameraToAim.y;
-        Vector3 projectedPoint = cam.transform.position + cameraToAim * t;
-
-        Vector3 fireDirection = (projectedPoint - gunMuzzle.position).normalized;
-
-        return fireDirection;
+        if (didHit && targetObj != null && targetObj.IsValid)
+        {
+            _pending.Add(new PendingDamage
+            {
+                Timer = TickTimer.CreateFromTicks(Runner, travelTicks),
+                Target = targetObj,
+                Damage = damage,
+                IsCritical = isCritical,
+                Owner = owner
+            });
+        }
     }
+
+    private void ProcessPendingDamage()
+    {
+        for (int i = _pending.Count - 1; i >= 0; i--)
+        {
+            var pd = _pending[i];
+
+            if (!pd.Timer.Expired(Runner))
+                continue;
+
+            _pending.RemoveAt(i);
+
+            if (pd.Target == null || !pd.Target.IsValid)
+                continue;
+
+            NetworkHealth health = null;
+
+            if (!pd.Target.TryGetComponent(out health))
+                health = pd.Target.GetComponentInParent<NetworkHealth>();
+
+            if (health == null)
+                continue;
+
+            float finalDamage = pd.IsCritical ? pd.Damage * 2f : pd.Damage;
+            health.ApplyDamage(finalDamage, pd.Owner);
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_SpawnTracer(Vector3 start, Vector3 end, int travelTicks)
+    {
+        Debug.Log($"[Tracer RPC] received. prefab={(tracerPrefab != null)} start={start} end={end} ticks={travelTicks}");
+
+        if (tracerPrefab == null)
+            return;
+
+        float duration = Mathf.Max(0.01f, travelTicks / (float)Runner.TickRate);
+
+        TracerFx fx = Instantiate(tracerPrefab);
+        Debug.Log($"[Tracer RPC] instantiated {fx}");
+
+        fx.Play(start, end, duration);
+    }
+
 }

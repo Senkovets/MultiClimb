@@ -1457,12 +1457,15 @@ MonoBehaviour:
   fireRate: 0.1
   fireMode: 0
   boltReloadTicks: 60
-  projectilePrefab: {fileID: 3523407342374443459, guid: 2433662b390604e4daa9d1b09edae2e0,
-    type: 3}
   gunMuzzle: {fileID: 5904446952089910354}
-  groundLayer:
+  bulletSpeed: 60
+  maxDistance: 200
+  damage: 25
+  hitLayers:
     serializedVersion: 2
-    m_Bits: 384
+    m_Bits: 4294967295
+  tracerPrefab: {fileID: -166842759958045252, guid: 40a70f7c44474324e87eb2eacb7203fb,
+    type: 3}
 --- !u!114 &-5356276029104326098
 MonoBehaviour:
   m_ObjectHideFlags: 0

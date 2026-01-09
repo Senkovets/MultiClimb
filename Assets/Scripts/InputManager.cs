@@ -1,4 +1,5 @@
-﻿using Fusion;
+﻿// InputManager.cs
+using Fusion;
 using Fusion.Addons.KCC;
 using Fusion.Menu;
 using Fusion.Sockets;
@@ -14,31 +15,32 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 
     public Vector2 AccumulatedMouseDelta => mouseDeltaAccumulator.AccumulatedValue;
 
+    [Header("Aim / Raycast")]
+    [SerializeField] private LayerMask aimMask = ~0;
+    [SerializeField] private float aimMaxDistance = 500f;
+
+    [Header("Headshot Highlight")]
+    [SerializeField] private LayerMask hitboxLayers = ~0;
+    [SerializeField] private float headCheckDistance = 100f;
+
     private NetInput accumulatedInput;
     private Vector2Accumulator mouseDeltaAccumulator = new() { SmoothingWindow = 0.025f };
     private bool resetInput;
 
     private AbilityMode selectedAbility;
-
-    [SerializeField]
-    private LayerMask hitboxLayers = ~0;
-
     private bool cachedCriticalAim;
 
     private void Awake()
     {
+        // Safety: if hitboxLayers accidentally set to 0, fallback to Default
         if (hitboxLayers == 0)
         {
-            int hitboxLayer = LayerMask.NameToLayer("Default");
-            if (hitboxLayer == -1)
-            {
-                Debug.LogError("Layer 'Default' not found!");
-            }
-            else
-            {
-                hitboxLayers = 1 << hitboxLayer;
-            }
+            int def = LayerMask.NameToLayer("Default");
+            hitboxLayers = def >= 0 ? (1 << def) : ~0;
         }
+
+        if (aimMask == 0)
+            aimMask = ~0;
     }
 
     void IBeforeUpdate.BeforeUpdate()
@@ -53,8 +55,9 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         Keyboard keyboard = Keyboard.current;
 
         NetworkButtons buttons = default;
+        Vector2 moveDirection = Vector2.zero;
 
-        // Курсор
+        // Cursor unlock hotkeys (optional)
         if (keyboard != null &&
             (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame || keyboard.escapeKey.wasPressedThisFrame))
         {
@@ -65,35 +68,36 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             }
         }
 
-        // MOUSE
+        // Mouse buttons
         if (mouse != null)
         {
-            buttons.Set(InputButton.Fire, mouse.leftButton.isPressed);
-            buttons.Set(InputButton.UseAbility, mouse.leftButton.isPressed);
-            buttons.Set(InputButton.Grapple, mouse.rightButton.isPressed);
+            buttons.Set((int)InputButton.Fire, mouse.leftButton.isPressed);
+            buttons.Set((int)InputButton.UseAbility, mouse.leftButton.isPressed);
+            buttons.Set((int)InputButton.Grapple, mouse.rightButton.isPressed);
 
             Vector2 mouseDelta = mouse.delta.ReadValue();
             Vector2 lookRotationDelta = new(-mouseDelta.y, mouseDelta.x);
             mouseDeltaAccumulator.Accumulate(lookRotationDelta);
         }
+        else
+        {
+            // Legacy fallback
+            buttons.Set((int)InputButton.Fire, Input.GetMouseButton(0));
+            buttons.Set((int)InputButton.UseAbility, Input.GetMouseButton(0));
+            buttons.Set((int)InputButton.Grapple, Input.GetMouseButton(1));
+        }
 
-        // KEYBOARD
+        // Keyboard
         if (keyboard != null)
         {
-            if (keyboard.rKey.wasPressedThisFrame && LocalPlayer != null)
-                LocalPlayer.RPC_SetReady();
-
-            Vector2 moveDirection = Vector2.zero;
-
             if (keyboard.wKey.isPressed) moveDirection += Vector2.up;
             if (keyboard.sKey.isPressed) moveDirection += Vector2.down;
             if (keyboard.aKey.isPressed) moveDirection += Vector2.left;
             if (keyboard.dKey.isPressed) moveDirection += Vector2.right;
 
-            accumulatedInput.Direction += moveDirection;
-
-            buttons.Set(InputButton.Jump, keyboard.spaceKey.isPressed);
-            buttons.Set(InputButton.Glide, keyboard.leftShiftKey.isPressed);
+            buttons.Set((int)InputButton.Jump, keyboard.spaceKey.isPressed);
+            buttons.Set((int)InputButton.Glide, keyboard.leftShiftKey.isPressed);
+            buttons.Set((int)InputButton.Reload, keyboard.rKey.isPressed);
 
             if (keyboard.digit1Key.wasPressedThisFrame)
             {
@@ -110,22 +114,82 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
                 selectedAbility = AbilityMode.Shove;
                 UIManager.Singleton.SelectAbility(AbilityMode.Shove);
             }
+
+            // Ready
+            if (keyboard.rKey.wasPressedThisFrame && LocalPlayer != null)
+                LocalPlayer.RPC_SetReady();
         }
 
-        cachedCriticalAim = IsAimingAtHead();
+        accumulatedInput.Direction = moveDirection;
 
-        if (mouse.leftButton.wasPressedThisFrame)
+        // ===== Aim =====
+        Vector3 aimDirection = ComputeAimDirection();
+        aimDirection.y = 0f;
+
+        if (aimDirection.sqrMagnitude < 0.0001f)
         {
-            accumulatedInput.IsCriticalAim = cachedCriticalAim;
+            // Hard fallback to player forward so it never becomes (0,0,0)
+            Vector3 fb = LocalPlayer != null ? LocalPlayer.transform.forward : Vector3.forward;
+            fb.y = 0f;
+            aimDirection = fb.sqrMagnitude < 0.0001f ? Vector3.forward : fb.normalized;
+        }
+        else
+        {
+            aimDirection.Normalize();
         }
 
+        accumulatedInput.AimDirection = aimDirection;
+        accumulatedInput.LookYaw = GetYawFromDirection(aimDirection);
+
+        // ===== Critical aim cached (head check) =====
+        cachedCriticalAim = IsAimingAtHead();
+        accumulatedInput.IsCriticalAim = cachedCriticalAim;
 
         accumulatedInput.Buttons = buttons;
         accumulatedInput.AbilityMode = selectedAbility;
+    }
 
-        // ✅ ИСПОЛЬЗУЕМ МЕТОД ИЗ GunController ДЛЯ КОНСИСТЕНТНОСТИ
-        accumulatedInput.AimDirection = GetAimDirectionFromGun();
-        accumulatedInput.LookYaw = GetMouseYaw(LocalPlayer);
+    private Vector3 ComputeAimDirection()
+    {
+        if (LocalPlayer == null)
+            return Vector3.forward;
+
+        Camera cam = Camera.main;
+        if (cam == null)
+            return LocalPlayer.transform.forward;
+
+        Vector2 screenPos = RecoilController.GetAimScreenPosition();
+        Ray ray = cam.ScreenPointToRay(screenPos);
+
+        // 1) Try raycast into world
+        if (Physics.Raycast(ray, out RaycastHit hit, aimMaxDistance, aimMask, QueryTriggerInteraction.Ignore))
+        {
+            Vector3 dir = hit.point - LocalPlayer.transform.position;
+            dir.y = 0f;
+            return dir;
+        }
+
+        // 2) Fallback: plane at player Y (top-down standard)
+        Plane plane = new Plane(Vector3.up, new Vector3(0f, LocalPlayer.transform.position.y, 0f));
+        if (plane.Raycast(ray, out float enter))
+        {
+            Vector3 point = ray.GetPoint(enter);
+            Vector3 dir = point - LocalPlayer.transform.position;
+            dir.y = 0f;
+            return dir;
+        }
+
+        // 3) Final fallback
+        return LocalPlayer.transform.forward;
+    }
+
+    private float GetYawFromDirection(Vector3 dir)
+    {
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f)
+            return LocalPlayer != null ? LocalPlayer.transform.eulerAngles.y : 0f;
+
+        return Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
     }
 
     private bool IsAimingAtHead()
@@ -137,20 +201,12 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         if (cam == null)
             return false;
 
-        for (int i = 0; i < 32; i++)
-        {
-            if ((hitboxLayers.value & (1 << i)) != 0)
-            {
-                Debug.Log($"hitboxLayers includes layer {i} ({LayerMask.LayerToName(i)})");
-            }
-        }
-
         Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
 
         if (!Physics.Raycast(
                 ray,
                 out RaycastHit hit,
-                100f,
+                headCheckDistance,
                 hitboxLayers,
                 QueryTriggerInteraction.Collide))
             return false;
@@ -161,94 +217,33 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         return hb.Type == HitboxType.Head;
     }
 
-
-
-
-    /// <summary>
-    /// ✅ НОВЫЙ МЕТОД: использует GunController.GetDirection() для консистентности
-    /// </summary>
-    private Vector3 GetAimDirectionFromGun()
-    {
-        if (LocalPlayer == null)
-            return Vector3.forward;
-
-        GunController gun = LocalPlayer.GetComponent<GunController>();
-        if (gun != null)
-        {
-            return gun.GetDirection();
-        }
-
-        // Fallback на простое направление
-        return GetAimDirection(LocalPlayer);
-    }
-
-    /// <summary>
-    /// Оригинальный метод (теперь fallback)
-    /// </summary>
-    private Vector3 GetAimDirection(Player player)
-    {
-        if (player == null)
-            return Vector3.forward;
-
-        Camera cam = Camera.main;
-
-        if (cam == null)
-            return Vector3.forward;
-
-        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
-
-        Plane plane = new Plane(Vector3.up, player.transform.position);
-
-        if (!plane.Raycast(ray, out float enter))
-            return player.transform.forward;
-
-        Vector3 hit = ray.GetPoint(enter);
-        Vector3 dir = hit - player.transform.position;
-        dir.y = 0f;
-
-        if (dir.sqrMagnitude < 0.0001f)
-            return player.transform.forward;
-
-        return dir.normalized;
-    }
-
-    private float GetMouseYaw(Player player)
-    {
-        if (player == null)
-            return 0f;
-
-        Camera cam = Camera.main;
-
-        if (cam == null)
-            return 0f;
-
-        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
-
-        Plane plane = new Plane(Vector3.up, player.transform.position);
-        if (!plane.Raycast(ray, out float enter))
-            return player.transform.eulerAngles.y;
-
-        Vector3 hit = ray.GetPoint(enter);
-        Vector3 dir = hit - player.transform.position;
-        dir.y = 0f;
-
-        if (dir.sqrMagnitude < 0.0001f)
-            return player.transform.eulerAngles.y;
-
-        return Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
-    }
-
     // ====== Fusion callbacks ======
 
     void INetworkRunnerCallbacks.OnInput(NetworkRunner runner, NetworkInput input)
     {
-        accumulatedInput.Direction.Normalize();
+        // Normalize movement for net determinism
+        if (accumulatedInput.Direction.sqrMagnitude > 1f)
+            accumulatedInput.Direction.Normalize();
 
-        if (accumulatedInput.AimDirection.sqrMagnitude > 1.001f)
-            accumulatedInput.AimDirection.Normalize();
+        // AimDirection must never be zero
+        Vector3 dir = accumulatedInput.AimDirection;
+        dir.y = 0f;
+
+        if (dir.sqrMagnitude < 0.0001f)
+        {
+            Vector3 fb = LocalPlayer != null ? LocalPlayer.transform.forward : Vector3.forward;
+            fb.y = 0f;
+            dir = fb.sqrMagnitude < 0.0001f ? Vector3.forward : fb.normalized;
+        }
+        else
+        {
+            dir.Normalize();
+        }
+
+        accumulatedInput.AimDirection = dir;
+        accumulatedInput.LookYaw = GetYawFromDirection(dir);
 
         input.Set(accumulatedInput);
-
         resetInput = true;
     }
 
@@ -272,7 +267,9 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     {
         if (player == runner.LocalPlayer)
         {
-            // Можно залочить курсор
+            // Optional: lock cursor here
+            // Cursor.lockState = CursorLockMode.Locked;
+            // Cursor.visible = false;
         }
     }
 

@@ -35,7 +35,6 @@ public class CrosshairUI : MonoBehaviour
     private Camera cam;
 
     private Texture2D crosshairTexture;
-    private MinimalGunController gunController;
 
     private void Start()
     {
@@ -46,7 +45,6 @@ public class CrosshairUI : MonoBehaviour
         crosshairTexture.SetPixel(0, 0, Color.white); // текстура белая, цвет задаём через GUI.color
         crosshairTexture.Apply();
 
-        gunController = FindObjectOfType<MinimalGunController>();
     }
 
     private void OnGUI()
