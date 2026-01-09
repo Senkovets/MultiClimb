@@ -1,4 +1,3 @@
-// NetInput.cs
 using Fusion;
 using UnityEngine;
 
@@ -18,8 +17,16 @@ public struct NetInput : INetworkInput
     public Vector2 Direction;
 
     public bool IsCriticalAim;
-    public float LookYaw;          // абсолютный yaw (градусы)
-    public Vector3 AimDirection;   // нормализованный XZ
+    public float LookYaw;
+
+    // XZ дл€ поворота/йоу (можно оставл€ть)
+    public Vector3 AimDirection;
+
+    // “очка под прицелом (обычно по ground/aim mask)
+    public Vector3 AimPoint;
+
+    // 3D-направление выстрела, рассчитанное как в твоЄм старом коде (fireDirection5)
+    public Vector3 AimDirection3D;
 
     public AbilityMode AbilityMode;
 }

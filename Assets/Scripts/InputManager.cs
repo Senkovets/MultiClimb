@@ -1,6 +1,4 @@
-﻿// InputManager.cs
-using Fusion;
-using Fusion.Addons.KCC;
+﻿using Fusion;
 using Fusion.Menu;
 using Fusion.Sockets;
 using MultiClimb.Menu;
@@ -13,15 +11,14 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 {
     public Player LocalPlayer;
 
-    [Header("Aim")]
+    [Header("Aim Raycast")]
     [SerializeField] private LayerMask aimMask = ~0;
-    [SerializeField] private float aimMaxDistance = 500f;
+    [SerializeField] private float aimMaxDistance = 2000f;
 
     [Header("Headshot Check")]
     [SerializeField] private LayerMask hitboxLayers = ~0;
     [SerializeField] private float headCheckDistance = 100f;
 
-    // GunController.Render() читает это для локального (предиктивного) трассера
     public NetInput LastLocalInput { get; private set; }
 
     private NetInput accumulatedInput;
@@ -92,60 +89,102 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         accumulatedInput.Buttons = buttons;
         accumulatedInput.AbilityMode = selectedAbility;
 
-        // AimDirection + LookYaw
-        Vector3 aimDir = ComputeAimDirection();
-        aimDir.y = 0f;
+        // === AimPoint / AimDirectionXZ / AimDirection3D (fireDirection5) ===
+        Vector3 aimPoint = ComputeAimPoint();
+        accumulatedInput.AimPoint = aimPoint;
 
-        if (aimDir.sqrMagnitude < 0.0001f)
-        {
-            Vector3 fb = LocalPlayer != null ? LocalPlayer.transform.forward : Vector3.forward;
-            fb.y = 0f;
-            aimDir = fb.sqrMagnitude < 0.0001f ? Vector3.forward : fb.normalized;
-        }
-        else
-        {
-            aimDir.Normalize();
-        }
+        Vector3 dirXZ = ComputeAimDirectionXZ(aimPoint);
+        accumulatedInput.AimDirection = dirXZ;
+        accumulatedInput.LookYaw = Mathf.Atan2(dirXZ.x, dirXZ.z) * Mathf.Rad2Deg;
 
-        accumulatedInput.AimDirection = aimDir;
-        accumulatedInput.LookYaw = Mathf.Atan2(aimDir.x, aimDir.z) * Mathf.Rad2Deg;
+        Vector3 dir3D = ComputeAimDirectionLikeOldCode(aimPoint, dirXZ);
+        accumulatedInput.AimDirection3D = dir3D;
 
-        // Crit
         accumulatedInput.IsCriticalAim = IsAimingAtHead();
 
-        // Export for Render-predict
         LastLocalInput = accumulatedInput;
     }
 
-    private Vector3 ComputeAimDirection()
+    private Vector3 ComputeAimPoint()
+    {
+        if (LocalPlayer == null)
+            return Vector3.zero;
+
+        Camera cam = Camera.main;
+        if (cam == null)
+            return LocalPlayer.transform.position + LocalPlayer.transform.forward * 10f;
+
+        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
+
+        if (Physics.Raycast(ray, out RaycastHit hit, aimMaxDistance, aimMask, QueryTriggerInteraction.Ignore))
+            return hit.point;
+
+        // fallback: плоскость на высоте игрока
+        Plane plane = new Plane(Vector3.up, new Vector3(0f, LocalPlayer.transform.position.y, 0f));
+        if (plane.Raycast(ray, out float enter))
+            return ray.GetPoint(enter);
+
+        return LocalPlayer.transform.position + LocalPlayer.transform.forward * 10f;
+    }
+
+    private Vector3 ComputeAimDirectionXZ(Vector3 aimPoint)
     {
         if (LocalPlayer == null)
             return Vector3.forward;
 
+        Vector3 dir = aimPoint - LocalPlayer.transform.position;
+        dir.y = 0f;
+
+        if (dir.sqrMagnitude < 0.0001f)
+        {
+            Vector3 fb = LocalPlayer.transform.forward;
+            fb.y = 0f;
+            return fb.sqrMagnitude < 0.0001f ? Vector3.forward : fb.normalized;
+        }
+
+        return dir.normalized;
+    }
+
+    // Это прямой перенос твоей логики fireDirection5
+    private Vector3 ComputeAimDirectionLikeOldCode(Vector3 targetPoint, Vector3 fallbackDirXZ)
+    {
+        if (LocalPlayer == null)
+            return fallbackDirXZ.sqrMagnitude < 0.0001f ? Vector3.forward : fallbackDirXZ;
+
         Camera cam = Camera.main;
         if (cam == null)
-            return LocalPlayer.transform.forward;
+            return fallbackDirXZ.sqrMagnitude < 0.0001f ? Vector3.forward : fallbackDirXZ;
 
-        Vector2 screenPos = RecoilController.GetAimScreenPosition();
-        Ray ray = cam.ScreenPointToRay(screenPos);
+        GunController gun = LocalPlayer.GetComponentInChildren<GunController>();
+        Transform muzzle = gun != null ? gun.Muzzle : null;
 
-        if (Physics.Raycast(ray, out RaycastHit hit, aimMaxDistance, aimMask, QueryTriggerInteraction.Ignore))
+        Vector3 muzzlePos = muzzle != null ? muzzle.position : LocalPlayer.transform.position;
+        float muzzleY = muzzlePos.y;
+
+        Vector3 normalToCamera = (cam.transform.position - targetPoint);
+        if (normalToCamera.sqrMagnitude < 0.000001f)
+            return fallbackDirXZ.sqrMagnitude < 0.0001f ? Vector3.forward : fallbackDirXZ;
+
+        normalToCamera.Normalize();
+
+        // Если камера почти параллельна плоскости по Y — пересечение будет мусор
+        if (Mathf.Abs(normalToCamera.y) < 0.0001f)
         {
-            Vector3 dir = hit.point - LocalPlayer.transform.position;
-            dir.y = 0f;
-            return dir;
+            Vector3 direct = (targetPoint - muzzlePos);
+            if (direct.sqrMagnitude < 0.0001f)
+                return fallbackDirXZ.sqrMagnitude < 0.0001f ? Vector3.forward : fallbackDirXZ;
+
+            return direct.normalized;
         }
 
-        Plane plane = new Plane(Vector3.up, new Vector3(0f, LocalPlayer.transform.position.y, 0f));
-        if (plane.Raycast(ray, out float enter))
-        {
-            Vector3 point = ray.GetPoint(enter);
-            Vector3 dir = point - LocalPlayer.transform.position;
-            dir.y = 0f;
-            return dir;
-        }
+        float t = (muzzleY - targetPoint.y) / normalToCamera.y;
+        Vector3 pointAtMuzzleY = targetPoint + normalToCamera * t;
 
-        return LocalPlayer.transform.forward;
+        Vector3 fireDir = pointAtMuzzleY - muzzlePos;
+        if (fireDir.sqrMagnitude < 0.0001f)
+            return fallbackDirXZ.sqrMagnitude < 0.0001f ? Vector3.forward : fallbackDirXZ;
+
+        return fireDir.normalized;
     }
 
     private bool IsAimingAtHead()
@@ -168,29 +207,21 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         return hb.Type == HitboxType.Head;
     }
 
-    // ===== Fusion callbacks =====
-
+    // ====== Fusion callbacks ======
     void INetworkRunnerCallbacks.OnInput(NetworkRunner runner, NetworkInput input)
     {
         if (accumulatedInput.Direction.sqrMagnitude > 1f)
             accumulatedInput.Direction.Normalize();
 
-        Vector3 dir = accumulatedInput.AimDirection;
-        dir.y = 0f;
+        // страховка
+        Vector3 dXZ = accumulatedInput.AimDirection; dXZ.y = 0f;
+        if (dXZ.sqrMagnitude > 0.0001f) dXZ.Normalize(); else dXZ = Vector3.forward;
+        accumulatedInput.AimDirection = dXZ;
+        accumulatedInput.LookYaw = Mathf.Atan2(dXZ.x, dXZ.z) * Mathf.Rad2Deg;
 
-        if (dir.sqrMagnitude < 0.0001f)
-        {
-            Vector3 fb = LocalPlayer != null ? LocalPlayer.transform.forward : Vector3.forward;
-            fb.y = 0f;
-            dir = fb.sqrMagnitude < 0.0001f ? Vector3.forward : fb.normalized;
-        }
-        else
-        {
-            dir.Normalize();
-        }
-
-        accumulatedInput.AimDirection = dir;
-        accumulatedInput.LookYaw = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
+        Vector3 d3 = accumulatedInput.AimDirection3D;
+        if (d3.sqrMagnitude > 0.0001f) d3.Normalize(); else d3 = dXZ;
+        accumulatedInput.AimDirection3D = d3;
 
         input.Set(accumulatedInput);
         resetInput = true;
@@ -211,6 +242,7 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     void INetworkRunnerCallbacks.OnSceneLoadDone(NetworkRunner runner) { }
     void INetworkRunnerCallbacks.OnSceneLoadStart(NetworkRunner runner) { }
     void INetworkRunnerCallbacks.OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList) { }
+
     void INetworkRunnerCallbacks.OnPlayerJoined(NetworkRunner runner, PlayerRef player) { }
 
     async void INetworkRunnerCallbacks.OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)

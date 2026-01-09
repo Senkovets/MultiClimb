@@ -1,5 +1,4 @@
-﻿// GunController.cs
-using Fusion;
+﻿using Fusion;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,6 +10,7 @@ public class GunController : NetworkBehaviour
     public int boltReloadTicks = 60;
 
     [SerializeField] private Transform gunMuzzle;
+    public Transform Muzzle => gunMuzzle;
 
     [Header("Hitscan + Travel Time")]
     [SerializeField] private float bulletSpeed = 60f;
@@ -23,14 +23,13 @@ public class GunController : NetworkBehaviour
 
     [Header("Local Predicted Tracer")]
     [SerializeField] private bool localTracerUseSpherecast = true;
-    [SerializeField] private float localTracerRadius = 0.06f; // чуть больше хитбокса, чтобы не "промахиваться" визуально
+    [SerializeField] private float localTracerRadius = 0.06f;
 
     [Networked] private int NextFireTick { get; set; }
     [Networked] private NetworkButtons PreviousButtons { get; set; }
 
     private int _cooldownTicks;
 
-    // ===== pending damage на сервере =====
     private struct PendingDamage
     {
         public TickTimer Timer;
@@ -41,14 +40,11 @@ public class GunController : NetworkBehaviour
     }
 
     private readonly List<PendingDamage> _pending = new();
-
-    // ===== локальный визуал стрелка (Plan A) =====
     private int _nextLocalFxTick = -1;
 
     public override void Spawned()
     {
         _cooldownTicks = Mathf.Max(1, Mathf.CeilToInt(Mathf.Max(0.01f, fireRate) * Runner.TickRate));
-
         if (HasStateAuthority)
             NextFireTick = Runner.Tick;
     }
@@ -92,7 +88,7 @@ public class GunController : NetworkBehaviour
 
     public override void Render()
     {
-        // Plan A: стрелок видит ТОЛЬКО локальный FX (мгновенно), серверный FX ему не показываем
+        // Plan A: стрелок видит ТОЛЬКО локальный FX
         if (!HasInputAuthority)
             return;
 
@@ -106,7 +102,6 @@ public class GunController : NetworkBehaviour
         NetInput input = im.LastLocalInput;
 
         bool fireHeld = input.Buttons.IsSet((int)InputButton.Fire);
-
         if (!fireHeld)
         {
             _nextLocalFxTick = -1;
@@ -115,7 +110,6 @@ public class GunController : NetworkBehaviour
 
         int tick = Runner.Tick;
 
-        // локальный тик-гейт совпадает с серверным по cooldownTicks
         if (_nextLocalFxTick < 0)
             _nextLocalFxTick = tick;
 
@@ -124,7 +118,7 @@ public class GunController : NetworkBehaviour
             if (tick != _nextLocalFxTick)
                 return;
 
-            _nextLocalFxTick = int.MaxValue; // до отпускания
+            _nextLocalFxTick = int.MaxValue;
         }
         else
         {
@@ -136,8 +130,11 @@ public class GunController : NetworkBehaviour
                 _nextLocalFxTick += boltReloadTicks;
         }
 
-        Vector3 dir = input.AimDirection;
-        dir.y = 0f;
+        // КЛЮЧ: локальный трейсер летит по AimDirection3D (как fireDirection5)
+        Vector3 dir = input.AimDirection3D;
+        if (dir.sqrMagnitude < 0.0001f)
+            dir = input.AimDirection;
+
         if (dir.sqrMagnitude < 0.0001f)
             return;
 
@@ -153,7 +150,6 @@ public class GunController : NetworkBehaviour
         Vector3 end = start + dir * maxDistance;
         float distance = maxDistance;
 
-        // Локальная PhysX-проверка: если попали — обрываем трейсер на hit.point
         if (localTracerUseSpherecast)
         {
             if (Physics.SphereCast(start, localTracerRadius, dir, out RaycastHit hit, maxDistance, hitLayers, QueryTriggerInteraction.Ignore))
@@ -184,8 +180,11 @@ public class GunController : NetworkBehaviour
 
         Vector3 origin = gunMuzzle.position;
 
-        Vector3 dir = input.AimDirection;
-        dir.y = 0f;
+        // КЛЮЧ: сервер стреляет по AimDirection3D (как fireDirection5)
+        Vector3 dir = input.AimDirection3D;
+        if (dir.sqrMagnitude < 0.0001f)
+            dir = input.AimDirection;
+
         if (dir.sqrMagnitude < 0.0001f)
             return;
 
@@ -231,6 +230,7 @@ public class GunController : NetworkBehaviour
         float travelTime = Mathf.Max(0.02f, distance / Mathf.Max(0.001f, bulletSpeed));
         int travelTicks = Mathf.Max(1, Mathf.RoundToInt(travelTime * Runner.TickRate));
 
+        // подтверждённый FX видят все КРОМЕ стрелка (Plan A)
         RPC_SpawnTracerConfirmed(origin, endPoint, travelTicks);
 
         if (didHit && targetObj != null && targetObj.IsValid)
@@ -275,7 +275,7 @@ public class GunController : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_SpawnTracerConfirmed(Vector3 start, Vector3 end, int travelTicks)
     {
-        // Plan A: стрелку подтверждённый FX НЕ показываем (иначе двойной трассер)
+        // Plan A: стрелку подтверждённый FX НЕ показываем
         if (HasInputAuthority)
             return;
 
