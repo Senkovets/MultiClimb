@@ -46,6 +46,10 @@ public class GunController : NetworkBehaviour
 
     [SerializeField] private ParticleSystem shellEmitter;
 
+
+    [SerializeField] private GameObject muzzleFxPrefab;
+    [SerializeField] private Transform muzzle;
+
     private struct PendingDamage
     {
         public TickTimer Timer;
@@ -220,6 +224,8 @@ public class GunController : NetworkBehaviour
         TracerFx fx = Instantiate(tracerPrefab);
         fx.Play(start, end, travelTime); // ВАЖНО: 3-й параметр duration обязателен
         shellEmitter.Emit(1);
+        if (muzzleFxPrefab)
+            Instantiate(muzzleFxPrefab, muzzle.position, muzzle.rotation, muzzle);
     }
 
    
@@ -287,6 +293,7 @@ public class GunController : NetworkBehaviour
         // подтверждённый FX видят все КРОМЕ стрелка (Plan A)
         RPC_SpawnTracerConfirmed(origin, endPoint, travelTicks);
         RPC_EjectShell();
+        RPC_MuzzleFx();
 
         if (didHit && targetObj != null && targetObj.IsValid)
         {
@@ -354,6 +361,19 @@ public class GunController : NetworkBehaviour
             return;
 
         shellEmitter.Emit(1);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_MuzzleFx()
+    {
+        if (HasInputAuthority)
+            return;
+
+        if (Runner == null)
+            return;
+
+        if (muzzleFxPrefab)
+            Instantiate(muzzleFxPrefab, muzzle.position, muzzle.rotation, muzzle);
     }
 
     // ===== Scatter helpers =====
