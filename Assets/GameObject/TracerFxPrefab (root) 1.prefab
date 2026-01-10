@@ -95,7 +95,7 @@ GameObject:
   - component: {fileID: -4616138361513556307}
   - component: {fileID: -166842759958045252}
   m_Layer: 7
-  m_Name: TracerFxPrefab (root)
+  m_Name: TracerFxPrefab (root) 1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
