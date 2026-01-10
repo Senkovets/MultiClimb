@@ -85,7 +85,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4072370323411184756}
   - component: {fileID: 8721423224904713366}
-  - component: {fileID: 3410509747022642841}
+  - component: {fileID: 3611541354335692725}
   m_Layer: 0
   m_Name: Body
   m_TagString: Untagged
@@ -118,8 +118,8 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1494810735533361939}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
---- !u!23 &3410509747022642841
-MeshRenderer:
+--- !u!137 &3611541354335692725
+SkinnedMeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -133,12 +133,13 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
+  m_RayTracingMode: 3
   m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 64dd92788a545a645be10d44f6646590, type: 2}
+  - {fileID: 2100000, guid: 919d6ef0e52770c4492d8a1be50a8834, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -159,7 +160,18 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
+  serializedVersion: 2
+  m_Quality: 0
+  m_UpdateWhenOffscreen: 0
+  m_SkinnedMotionVectors: 1
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+  m_Bones: []
+  m_BlendShapeWeights: []
+  m_RootBone: {fileID: 0}
+  m_AABB:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0.5, y: 1, z: 0.5}
+  m_DirtyAABB: 0
 --- !u!1 &1586680233995955682
 GameObject:
   m_ObjectHideFlags: 0
@@ -1227,7 +1239,6 @@ GameObject:
   - component: {fileID: 4391075928499431294}
   - component: {fileID: 8686857379923021993}
   - component: {fileID: 7790788000812587550}
-  - component: {fileID: 5754445826141032479}
   - component: {fileID: 5512796162034683420}
   - component: {fileID: -5356276029104326098}
   - component: {fileID: 2526720971422132695}
@@ -1429,20 +1440,6 @@ MonoBehaviour:
   Offset: {x: 0, y: 0.9, z: 0}
   Root: {fileID: 8686857379923021993}
   GizmosColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
---- !u!114 &5754445826141032479
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9040168462585498880}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7eeef3259c442f64dbcbc3bb8e08c1a2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  highlight: {fileID: 2100000, guid: 9b8474a1396a6be47bef7ace3ac2502b, type: 2}
-  meshRenderer: {fileID: 3410509747022642841}
 --- !u!114 &5512796162034683420
 MonoBehaviour:
   m_ObjectHideFlags: 0
