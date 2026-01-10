@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BulletHitSmoke
+  m_Shader: {fileID: 4800000, guid: cd9b890aa19420048b3b873ce4590c77, type: 3}
+  m_Parent: {fileID: 2100000, guid: 0d0f95febb7ab8d40a575143a9948bbf, type: 2}
+  m_ModifiedSerializedProperties: 18
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 0
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: d0cdc3d313e1a024693627bc191ddebb, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Cutoff: 0.042
+    - _ReceiveShadows: 0
+    - _Smoothness: 0
+    - _SoftParticlesFarFadeDistance: 0.5
+    m_Colors:
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _EmissionColor: {r: 0.084905684, g: 0.084905684, b: 0.084905684, a: 1}
+    - _SoftParticleFadeParams: {r: 0, g: 2, b: 0, a: 0}
+  m_BuildTextureStacks: []
