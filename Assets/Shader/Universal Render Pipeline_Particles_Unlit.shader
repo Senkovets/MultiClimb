@@ -1,83 +1,88 @@
-Shader "Universal Render Pipeline/Particles/Unlit" {
-	Properties {
-		_BaseMap ("Base Map", 2D) = "white" {}
-		_BaseColor ("Base Color", Vector) = (1,1,1,1)
-		_Cutoff ("Alpha Cutoff", Range(0, 1)) = 0.5
-		_BumpMap ("Normal Map", 2D) = "bump" {}
-		[HDR] _EmissionColor ("Color", Vector) = (0,0,0,1)
-		_EmissionMap ("Emission", 2D) = "white" {}
-		_SoftParticlesNearFadeDistance ("Soft Particles Near Fade", Float) = 0
-		_SoftParticlesFarFadeDistance ("Soft Particles Far Fade", Float) = 1
-		_CameraNearFadeDistance ("Camera Near Fade", Float) = 1
-		_CameraFarFadeDistance ("Camera Far Fade", Float) = 2
-		_DistortionBlend ("Distortion Blend", Range(0, 1)) = 0.5
-		_DistortionStrength ("Distortion Strength", Float) = 1
-		_Surface ("__surface", Float) = 0
-		_Blend ("__mode", Float) = 0
-		_Cull ("__cull", Float) = 2
-		[ToggleUI] _AlphaClip ("__clip", Float) = 0
-		[HideInInspector] _BlendOp ("__blendop", Float) = 0
-		[HideInInspector] _SrcBlend ("__src", Float) = 1
-		[HideInInspector] _DstBlend ("__dst", Float) = 0
-		[HideInInspector] _SrcBlendAlpha ("__srcA", Float) = 1
-		[HideInInspector] _DstBlendAlpha ("__dstA", Float) = 0
-		[HideInInspector] _ZWrite ("__zw", Float) = 1
-		[HideInInspector] _AlphaToMask ("__alphaToMask", Float) = 0
-		_ColorMode ("_ColorMode", Float) = 0
-		[HideInInspector] _BaseColorAddSubDiff ("_ColorMode", Vector) = (0,0,0,0)
-		[ToggleOff] _FlipbookBlending ("__flipbookblending", Float) = 0
-		[ToggleUI] _SoftParticlesEnabled ("__softparticlesenabled", Float) = 0
-		[ToggleUI] _CameraFadingEnabled ("__camerafadingenabled", Float) = 0
-		[ToggleUI] _DistortionEnabled ("__distortionenabled", Float) = 0
-		[HideInInspector] _SoftParticleFadeParams ("__softparticlefadeparams", Vector) = (0,0,0,0)
-		[HideInInspector] _CameraFadeParams ("__camerafadeparams", Vector) = (0,0,0,0)
-		[HideInInspector] _DistortionStrengthScaled ("Distortion Strength Scaled", Float) = 0.1
-		_QueueOffset ("Queue offset", Float) = 0
-		[HideInInspector] _FlipbookMode ("flipbook", Float) = 0
-		[HideInInspector] _Mode ("mode", Float) = 0
-		[HideInInspector] _Color ("color", Vector) = (1,1,1,1)
-	}
-	//DummyShaderTextExporter
-	SubShader{
-		Tags { "RenderType"="Opaque" }
-		LOD 200
+Shader "Custom/ParticlesUnlit_URP_Fixed"
+{
+    Properties
+    {
+        _BaseMap ("Base Map", 2D) = "white" {}
+        _BaseColor ("Base Color", Color) = (1,1,1,1)
+        [HDR] _EmissionColor ("Emission Color", Color) = (0,0,0,1)
+        _Alpha ("Alpha", Range(0,1)) = 1
+    }
 
-		Pass
-		{
-			HLSLPROGRAM
-			#pragma vertex vert
-			#pragma fragment frag
+    SubShader
+    {
+        Tags
+        {
+            "Queue"="Transparent"
+            "RenderType"="Transparent"
+            "IgnoreProjector"="True"
+        }
 
-			float4x4 unity_ObjectToWorld;
-			float4x4 unity_MatrixVP;
+        Pass
+        {
+            Name "Forward"
+            Tags { "LightMode"="UniversalForward" }
 
-			struct Vertex_Stage_Input
-			{
-				float4 pos : POSITION;
-			};
+            Blend SrcAlpha OneMinusSrcAlpha
+            ZWrite Off
+            Cull Off
 
-			struct Vertex_Stage_Output
-			{
-				float4 pos : SV_POSITION;
-			};
+            HLSLPROGRAM
+            #pragma target 3.0
+            #pragma vertex vert
+            #pragma fragment frag
 
-			Vertex_Stage_Output vert(Vertex_Stage_Input input)
-			{
-				Vertex_Stage_Output output;
-				output.pos = mul(unity_MatrixVP, mul(unity_ObjectToWorld, input.pos));
-				return output;
-			}
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
-			float4 _Color;
+            CBUFFER_START(UnityPerMaterial)
+                float4 _BaseColor;
+                float4 _EmissionColor;
+                float  _Alpha;
+                float4 _BaseMap_ST;
+            CBUFFER_END
 
-			float4 frag(Vertex_Stage_Output input) : SV_TARGET
-			{
-				return _Color; // RGBA
-			}
+            TEXTURE2D(_BaseMap);
+            SAMPLER(sampler_BaseMap);
 
-			ENDHLSL
-		}
-	}
-	Fallback "Hidden/Universal Render Pipeline/FallbackError"
-	//CustomEditor "UnityEditor.Rendering.Universal.ShaderGUI.ParticlesUnlitShader"
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float2 uv         : TEXCOORD0;
+                float4 color      : COLOR;   // ParticleSystem color
+            };
+
+            struct Varyings
+            {
+                float4 positionHCS : SV_POSITION;
+                float2 uv          : TEXCOORD0;
+                float4 color       : COLOR;
+            };
+
+            Varyings vert (Attributes v)
+            {
+                Varyings o;
+                VertexPositionInputs pos = GetVertexPositionInputs(v.positionOS.xyz);
+                o.positionHCS = pos.positionCS;
+                o.uv = TRANSFORM_TEX(v.uv, _BaseMap);
+                o.color = v.color;
+                return o;
+            }
+
+            half4 frag (Varyings i) : SV_TARGET
+            {
+                half4 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv);
+
+                // Base color * particle color
+                half4 col = tex * _BaseColor * i.color;
+
+                // Общий множитель альфы
+                col.a *= _Alpha;
+
+                // Emission (для muzzle flash / fire / sparks)
+                col.rgb += _EmissionColor.rgb * col.a;
+
+                return col;
+            }
+            ENDHLSL
+        }
+    }
 }
