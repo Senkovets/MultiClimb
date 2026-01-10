@@ -24,6 +24,10 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     private NetInput accumulatedInput;
     private bool resetInput;
     private AbilityMode selectedAbility;
+    [Header("Aim Marker Settings")]
+
+    [SerializeField] private float aimSensitivity = 1.0f; // подгони (обычно 0.6..1.5)
+    [SerializeField] private float aimClampPadding = 10f; // чтобы маркер не упирался в край
 
     void IBeforeUpdate.BeforeUpdate()
     {
@@ -39,7 +43,7 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         NetworkButtons buttons = default;
         Vector2 move = Vector2.zero;
 
-        // Mouse
+        // Mouse buttons
         if (mouse != null)
         {
             buttons.Set((int)InputButton.Fire, mouse.leftButton.isPressed);
@@ -89,7 +93,16 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         accumulatedInput.Buttons = buttons;
         accumulatedInput.AbilityMode = selectedAbility;
 
-        // === AimPoint / AimDirectionXZ / AimDirection3D (fireDirection5) ===
+        // === IMPORTANT: update virtual aim marker BEFORE raycasts ===
+        RecoilController.SetClampPadding(aimClampPadding);
+
+        Vector2 mouseDelta = Vector2.zero;
+        if (mouse != null)
+            mouseDelta = mouse.delta.ReadValue();
+
+        RecoilController.Tick(mouseDelta, aimSensitivity);
+
+        // === AimPoint/AimDirection as you already do ===
         Vector3 aimPoint = ComputeAimPoint();
         accumulatedInput.AimPoint = aimPoint;
 

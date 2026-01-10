@@ -30,6 +30,14 @@ public class GunController : NetworkBehaviour
 
     private int _cooldownTicks;
 
+
+    [Header("Recoil (local aim marker)")]
+    [SerializeField] private float recoilV = 35f;
+    [SerializeField] private float recoilH = 0f;
+    [SerializeField] private float recoilTime = 0.04f;
+    [SerializeField] private float recoilRecoverDelay = 0.10f;
+    [SerializeField] private float recoilRecoverSpeed = 220f;
+
     private struct PendingDamage
     {
         public TickTimer Timer;
@@ -141,6 +149,8 @@ public class GunController : NetworkBehaviour
         dir.Normalize();
 
         SpawnLocalPredictedTracer(dir);
+        RecoilController.NotifyShot(recoilV, recoilH, recoilTime, recoilRecoverDelay, recoilRecoverSpeed);
+
     }
 
     private void SpawnLocalPredictedTracer(Vector3 dir)
