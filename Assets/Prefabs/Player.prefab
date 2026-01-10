@@ -1231,6 +1231,7 @@ GameObject:
   - component: {fileID: 5512796162034683420}
   - component: {fileID: -5356276029104326098}
   - component: {fileID: 2526720971422132695}
+  - component: {fileID: 2730186348420807200}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -1474,6 +1475,7 @@ MonoBehaviour:
   recoilTime: 0.04
   recoilRecoverDelay: 0.1
   recoilRecoverSpeed: 220
+  recoilPattern: {fileID: 0}
 --- !u!114 &-5356276029104326098
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1510,6 +1512,19 @@ CapsuleCollider:
   m_Height: 1.7
   m_Direction: 1
   m_Center: {x: 0, y: 1, z: 0}
+--- !u!114 &2730186348420807200
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9040168462585498880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbfbf0be063048e43afd71e07751aa3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pattern: {fileID: 11400000, guid: c06b87c09d4596448b5162a8a7ac2155, type: 2}
 --- !u!1001 &4218172695574425155
 PrefabInstance:
   m_ObjectHideFlags: 0

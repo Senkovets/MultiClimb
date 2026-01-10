@@ -40,6 +40,8 @@ public class GunController : NetworkBehaviour
     [Networked] private int NextFireTick { get; set; }
     [Networked] private NetworkButtons PreviousButtons { get; set; }
 
+    [SerializeField] private RecoilPatternApplier recoilPattern;
+
     private int _cooldownTicks;
 
     private struct PendingDamage
@@ -59,6 +61,10 @@ public class GunController : NetworkBehaviour
         _cooldownTicks = Mathf.Max(1, Mathf.CeilToInt(Mathf.Max(0.01f, fireRate) * Runner.TickRate));
         if (HasStateAuthority)
             NextFireTick = Runner.Tick;
+
+        if (recoilPattern == null)
+            recoilPattern = GetComponent<RecoilPatternApplier>();
+
     }
 
     public override void FixedUpdateNetwork()
@@ -117,6 +123,10 @@ public class GunController : NetworkBehaviour
         if (!fireHeld)
         {
             _nextLocalFxTick = -1;
+
+            // Важно: если ты хочешь, чтобы серия паттерна сбрасывалась сразу при отпускании,
+            // добавь в RecoilPatternApplier метод ResetBurst() и вызывай его здесь.
+            // Пока можно оставить — у тебя уже есть burstResetSeconds по времени.
             return;
         }
 
@@ -125,8 +135,10 @@ public class GunController : NetworkBehaviour
         if (_nextLocalFxTick < 0)
             _nextLocalFxTick = tick;
 
+        // Режимы огня: удержание/одиночные
         if (fireMode == FireMode.Semi || fireMode == FireMode.Bolt)
         {
+            // Один выстрел на тик "разрешения"
             if (tick != _nextLocalFxTick)
                 return;
 
@@ -138,6 +150,9 @@ public class GunController : NetworkBehaviour
                 return;
 
             _nextLocalFxTick = tick + _cooldownTicks;
+
+            // bolt тут по факту не попадёт (ты уже в else от Auto),
+            // но оставляю, чтобы не ломать твою структуру.
             if (fireMode == FireMode.Bolt)
                 _nextLocalFxTick += boltReloadTicks;
         }
@@ -152,15 +167,29 @@ public class GunController : NetworkBehaviour
 
         dir.Normalize();
 
-        // Scatter должен совпадать с сервером на этом тике
+        // === Seed один и тот же для scatter и recoil-pattern ===
         int seed = BuildShotSeed(tick);
+
+        // Scatter должен совпадать с сервером на этом тике
         Vector3 scatteredDir = ApplyScatter(dir, scatterAngleDeg, seed);
 
         SpawnLocalPredictedTracer(scatteredDir);
 
-        // локальная отдача (двигает aim marker), не влияет на scatter напрямую
-        RecoilController.NotifyShot(recoilV, recoilH, recoilTime, recoilRecoverDelay, recoilRecoverSpeed);
+        // === Recoil marker: паттерн или fallback ===
+        if (recoilPattern == null)
+            recoilPattern = GetComponent<RecoilPatternApplier>();
+
+        if (recoilPattern != null)
+        {
+            recoilPattern.NotifyShot(seed);
+        }
+        else
+        {
+            // fallback (как было)
+            RecoilController.NotifyShot(recoilV, recoilH, recoilTime, recoilRecoverDelay, recoilRecoverSpeed);
+        }
     }
+
 
     private void SpawnLocalPredictedTracer(Vector3 dir)
     {
