@@ -44,6 +44,8 @@ public class GunController : NetworkBehaviour
 
     private int _cooldownTicks;
 
+    [SerializeField] private ParticleSystem shellEmitter;
+
     private struct PendingDamage
     {
         public TickTimer Timer;
@@ -217,7 +219,11 @@ public class GunController : NetworkBehaviour
 
         TracerFx fx = Instantiate(tracerPrefab);
         fx.Play(start, end, travelTime); // ВАЖНО: 3-й параметр duration обязателен
+        shellEmitter.Emit(1);
     }
+
+   
+
 
     private void FireHitscan_Server(NetInput input)
     {
@@ -280,6 +286,7 @@ public class GunController : NetworkBehaviour
 
         // подтверждённый FX видят все КРОМЕ стрелка (Plan A)
         RPC_SpawnTracerConfirmed(origin, endPoint, travelTicks);
+        RPC_EjectShell();
 
         if (didHit && targetObj != null && targetObj.IsValid)
         {
@@ -335,6 +342,18 @@ public class GunController : NetworkBehaviour
 
         TracerFx fx = Instantiate(tracerPrefab);
         fx.Play(start, end, duration); // duration обязателен
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_EjectShell()
+    {
+        if (HasInputAuthority)
+            return;
+
+        if (Runner == null)
+            return;
+
+        shellEmitter.Emit(1);
     }
 
     // ===== Scatter helpers =====

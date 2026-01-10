@@ -1476,6 +1476,7 @@ MonoBehaviour:
   recoilRecoverDelay: 0.1
   recoilRecoverSpeed: 220
   recoilPattern: {fileID: 0}
+  shellEmitter: {fileID: 8549854663455097142}
 --- !u!114 &-5356276029104326098
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1670,6 +1671,12 @@ PrefabInstance:
 --- !u!4 &8388415894349574182 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4187255439156723, guid: b7600c8c121636d4fa4f7d3830946862,
+    type: 3}
+  m_PrefabInstance: {fileID: 8387747076153972181}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &8549854663455097142 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 198277143670543587, guid: b7600c8c121636d4fa4f7d3830946862,
     type: 3}
   m_PrefabInstance: {fileID: 8387747076153972181}
   m_PrefabAsset: {fileID: 0}
