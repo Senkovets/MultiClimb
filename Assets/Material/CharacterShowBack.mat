@@ -46,7 +46,7 @@ Material:
     - _AlphaCutoff: 0.5
     - _Factor: -555
     - _FadeDistance: 0.3
-    - _HurtValue: 1
+    - _HurtValue: 0
     - _NoiseStrength: 0.06
     - _Power: 0.5
     - _QueueControl: 1

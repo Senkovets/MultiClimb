@@ -1,93 +1,80 @@
-Shader "Custom/SodaCharacter_HurtURP"
-{
-    Properties
-    {
-        _MainTex ("Base Map", 2D) = "white" {}
-        _BaseColor ("Base Color", Color) = (1,1,1,1)
+Shader "SodaCraft/SodaCharacter" {
+	Properties {
+		[HideInInspector] _AlphaCutoff ("Alpha Cutoff ", Range(0, 1)) = 0.5
+		_TempratureLerp ("TempratureLerp", Range(0, 1)) = 0
+		_MainTex ("MainTex", 2D) = "white" {}
+		_Tint ("Tint", Vector) = (1,1,1,1)
+		_AlphaMask ("AlphaMask", Range(0, 1)) = 0
+		_AlphaMaskTint ("AlphaMaskTint", Vector) = (1,1,1,1)
+		_NormalMap ("NormalMap", 2D) = "bump" {}
+		_NormalScale ("NormalScale", Float) = 1
+		_MetallicSmoothness ("MetallicSmoothness", 2D) = "white" {}
+		_FresnelPower ("FresnelPower", Float) = 1
+		_Metallic ("Metallic", Range(0, 1)) = 0
+		_Smoothness ("Smoothness", Range(0, 1)) = 0
+		_EmissionMap ("EmissionMap", 2D) = "white" {}
+		[HDR] _EmissionColor ("EmissionColor", Vector) = (0,0,0,0)
+		_AO_Blend2Albedo ("AO_Blend2Albedo", Range(0, 1)) = 0
+		_HurtValue ("_HurtValue", Range(0, 1)) = 0
+		[Toggle] _Cutout ("Cutout", Range(0, 1)) = 0
+		[HideInInspector] _texcoord ("", 2D) = "white" {}
+		[HideInInspector] _QueueOffset ("_QueueOffset", Float) = 0
+		[HideInInspector] _QueueControl ("_QueueControl", Float) = -1
+		[HideInInspector] [NoScaleOffset] unity_Lightmaps ("unity_Lightmaps", 2DArray) = "" {}
+		[HideInInspector] [NoScaleOffset] unity_LightmapsInd ("unity_LightmapsInd", 2DArray) = "" {}
+		[HideInInspector] [NoScaleOffset] unity_ShadowMasks ("unity_ShadowMasks", 2DArray) = "" {}
+	}
+	//DummyShaderTextExporter
+	SubShader{
+		Tags { "RenderType"="Opaque" }
+		LOD 200
 
-        _HurtColor ("Hurt Color", Color) = (1,0.3,0.3,1)
-        _HurtIntensity ("Hurt Intensity", Range(0,5)) = 1.5
+		Pass
+		{
+			HLSLPROGRAM
+			#pragma vertex vert
+			#pragma fragment frag
 
-        _HurtValue ("_HurtValue", Range(0,1)) = 0
-    }
+			float4x4 unity_ObjectToWorld;
+			float4x4 unity_MatrixVP;
+			float4 _MainTex_ST;
 
-    SubShader
-    {
-        Tags { "Queue"="Geometry" "RenderType"="Opaque" }
+			struct Vertex_Stage_Input
+			{
+				float4 pos : POSITION;
+				float2 uv : TEXCOORD0;
+			};
 
-        Pass
-        {
-            Name "Forward"
-            Tags { "LightMode"="UniversalForward" }
+			struct Vertex_Stage_Output
+			{
+				float2 uv : TEXCOORD0;
+				float4 pos : SV_POSITION;
+			};
 
-            HLSLPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
+			Vertex_Stage_Output vert(Vertex_Stage_Input input)
+			{
+				Vertex_Stage_Output output;
+				output.uv = (input.uv.xy * _MainTex_ST.xy) + _MainTex_ST.zw;
+				output.pos = mul(unity_MatrixVP, mul(unity_ObjectToWorld, input.pos));
+				return output;
+			}
 
-            // URP core utilities (camera position, transforms, etc.)
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+			Texture2D<float4> _MainTex;
+			SamplerState sampler_MainTex;
 
-            CBUFFER_START(UnityPerMaterial)
-                float4 _BaseColor;
-                float4 _HurtColor;
-                float  _HurtIntensity;
-                float  _HurtValue;
-                float4 _MainTex_ST;
-            CBUFFER_END
+			struct Fragment_Stage_Input
+			{
+				float2 uv : TEXCOORD0;
+			};
 
-            TEXTURE2D(_MainTex);
-            SAMPLER(sampler_MainTex);
+			float4 frag(Fragment_Stage_Input input) : SV_TARGET
+			{
+				return _MainTex.Sample(sampler_MainTex, input.uv.xy);
+			}
 
-            struct Attributes
-            {
-                float4 positionOS : POSITION;
-                float2 uv         : TEXCOORD0;
-                float3 normalOS   : NORMAL;
-            };
-
-            struct Varyings
-            {
-                float4 positionHCS : SV_POSITION;
-                float2 uv          : TEXCOORD0;
-                float3 normalWS    : TEXCOORD1;
-                float3 positionWS  : TEXCOORD2;
-            };
-
-            Varyings vert (Attributes v)
-            {
-                Varyings o;
-
-                VertexPositionInputs posInputs = GetVertexPositionInputs(v.positionOS.xyz);
-                VertexNormalInputs   nrmInputs = GetVertexNormalInputs(v.normalOS);
-
-                o.positionHCS = posInputs.positionCS;
-                o.positionWS  = posInputs.positionWS;
-                o.normalWS    = normalize(nrmInputs.normalWS);
-                o.uv          = TRANSFORM_TEX(v.uv, _MainTex);
-
-                return o;
-            }
-
-            half4 frag (Varyings i) : SV_TARGET
-            {
-                half4 baseTex = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv);
-                half4 col = baseTex * (half4)_BaseColor;
-
-                // View dir from camera (URP-safe)
-                float3 camPosWS = GetCameraPositionWS();
-                float3 viewDirWS = normalize(camPosWS - i.positionWS);
-
-                // Simple rim (fresnel)
-                float ndv = saturate(dot(i.normalWS, viewDirWS));
-                float fresnel = pow(1.0 - ndv, 2.5);
-
-                // Hurt glow driven by HurtVisual.cs via MaterialPropertyBlock
-                float hurt = saturate(_HurtValue) * _HurtIntensity;
-                col.rgb += (half3)_HurtColor.rgb * (hurt + fresnel * hurt);
-
-                return col;
-            }
-            ENDHLSL
-        }
-    }
+			ENDHLSL
+		}
+	}
+	Fallback "Hidden/InternalErrorShader"
+	//CustomEditor "UnityEditor.ShaderGraphLitGUI"
 }
