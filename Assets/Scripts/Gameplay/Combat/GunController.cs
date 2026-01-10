@@ -1,4 +1,5 @@
 ﻿using Fusion;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -18,6 +19,10 @@ public class GunController : NetworkBehaviour
     [SerializeField] private float damage = 25f;
     [SerializeField] private LayerMask hitLayers;
 
+    [Header("Scatter (bullet spread)")]
+    [Tooltip("Угол конуса разброса в градусах. 0 = без разброса.")]
+    [SerializeField] private float scatterAngleDeg = 1.25f;
+
     [Header("Visual (NOT network)")]
     [SerializeField] private TracerFx tracerPrefab;
 
@@ -25,18 +30,17 @@ public class GunController : NetworkBehaviour
     [SerializeField] private bool localTracerUseSpherecast = true;
     [SerializeField] private float localTracerRadius = 0.06f;
 
-    [Networked] private int NextFireTick { get; set; }
-    [Networked] private NetworkButtons PreviousButtons { get; set; }
-
-    private int _cooldownTicks;
-
-
     [Header("Recoil (local aim marker)")]
     [SerializeField] private float recoilV = 35f;
     [SerializeField] private float recoilH = 0f;
     [SerializeField] private float recoilTime = 0.04f;
     [SerializeField] private float recoilRecoverDelay = 0.10f;
     [SerializeField] private float recoilRecoverSpeed = 220f;
+
+    [Networked] private int NextFireTick { get; set; }
+    [Networked] private NetworkButtons PreviousButtons { get; set; }
+
+    private int _cooldownTicks;
 
     private struct PendingDamage
     {
@@ -138,7 +142,7 @@ public class GunController : NetworkBehaviour
                 _nextLocalFxTick += boltReloadTicks;
         }
 
-        // КЛЮЧ: локальный трейсер летит по AimDirection3D (как fireDirection5)
+        // Базовое направление (куда целимся маркером)
         Vector3 dir = input.AimDirection3D;
         if (dir.sqrMagnitude < 0.0001f)
             dir = input.AimDirection;
@@ -148,9 +152,14 @@ public class GunController : NetworkBehaviour
 
         dir.Normalize();
 
-        SpawnLocalPredictedTracer(dir);
-        RecoilController.NotifyShot(recoilV, recoilH, recoilTime, recoilRecoverDelay, recoilRecoverSpeed);
+        // Scatter должен совпадать с сервером на этом тике
+        int seed = BuildShotSeed(tick);
+        Vector3 scatteredDir = ApplyScatter(dir, scatterAngleDeg, seed);
 
+        SpawnLocalPredictedTracer(scatteredDir);
+
+        // локальная отдача (двигает aim marker), не влияет на scatter напрямую
+        RecoilController.NotifyShot(recoilV, recoilH, recoilTime, recoilRecoverDelay, recoilRecoverSpeed);
     }
 
     private void SpawnLocalPredictedTracer(Vector3 dir)
@@ -180,7 +189,7 @@ public class GunController : NetworkBehaviour
         float travelTime = Mathf.Max(0.02f, distance / Mathf.Max(0.001f, bulletSpeed));
 
         TracerFx fx = Instantiate(tracerPrefab);
-        fx.Play(start, end, travelTime);
+        fx.Play(start, end, travelTime); // ВАЖНО: 3-й параметр duration обязателен
     }
 
     private void FireHitscan_Server(NetInput input)
@@ -190,7 +199,6 @@ public class GunController : NetworkBehaviour
 
         Vector3 origin = gunMuzzle.position;
 
-        // КЛЮЧ: сервер стреляет по AimDirection3D (как fireDirection5)
         Vector3 dir = input.AimDirection3D;
         if (dir.sqrMagnitude < 0.0001f)
             dir = input.AimDirection;
@@ -199,6 +207,10 @@ public class GunController : NetworkBehaviour
             return;
 
         dir.Normalize();
+
+        // Scatter на сервере (тот же seed на этом тике)
+        int seed = BuildShotSeed(Runner.Tick);
+        dir = ApplyScatter(dir, scatterAngleDeg, seed);
 
         bool isCritical = input.IsCriticalAim;
         Player owner = GetComponent<Player>();
@@ -236,8 +248,8 @@ public class GunController : NetworkBehaviour
             endPoint = origin + dir * maxDistance;
         }
 
-        float distance = Vector3.Distance(origin, endPoint);
-        float travelTime = Mathf.Max(0.02f, distance / Mathf.Max(0.001f, bulletSpeed));
+        float dist = Vector3.Distance(origin, endPoint);
+        float travelTime = Mathf.Max(0.02f, dist / Mathf.Max(0.001f, bulletSpeed));
         int travelTicks = Mathf.Max(1, Mathf.RoundToInt(travelTime * Runner.TickRate));
 
         // подтверждённый FX видят все КРОМЕ стрелка (Plan A)
@@ -278,14 +290,15 @@ public class GunController : NetworkBehaviour
                 continue;
 
             float finalDamage = pd.IsCritical ? pd.Damage * 2f : pd.Damage;
-            health.ApplyDamage(finalDamage, pd.Owner);
+            health.ApplyDamage(finalDamage, pd.Owner); // вместо Player.TakeDamage
         }
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_SpawnTracerConfirmed(Vector3 start, Vector3 end, int travelTicks)
     {
-        // Plan A: стрелку подтверждённый FX НЕ показываем
+        // Это НОРМАЛЬНО: RpcTargets.All зовёт и стрелка тоже, поэтому фильтруем так.
+        // (Если бы у тебя была цель “all except input authority”, можно было бы иначе.)
         if (HasInputAuthority)
             return;
 
@@ -295,6 +308,53 @@ public class GunController : NetworkBehaviour
         float duration = Mathf.Max(0.02f, travelTicks / (float)Runner.TickRate);
 
         TracerFx fx = Instantiate(tracerPrefab);
-        fx.Play(start, end, duration);
+        fx.Play(start, end, duration); // duration обязателен
+    }
+
+    // ===== Scatter helpers =====
+
+    private int BuildShotSeed(int tick)
+    {
+        unchecked
+        {
+            int id = Object != null ? (int)Object.Id.Raw : 0;
+            int auth = Object != null ? Object.InputAuthority.PlayerId : 0;
+
+            return (tick * 73856093) ^ (id * 19349663) ^ (auth * 83492791);
+        }
+    }
+
+
+    private static Vector3 ApplyScatter(Vector3 forward, float angleDeg, int seed)
+    {
+        if (angleDeg <= 0.0001f)
+            return forward;
+
+        // System.Random не трогает UnityEngine.Random state
+        var rng = new System.Random(seed);
+
+        // равномерно по площади круга: r = sqrt(u)
+        double u1 = rng.NextDouble();
+        double u2 = rng.NextDouble();
+
+        double r = Math.Sqrt(u1);
+        double theta = 2.0 * Math.PI * u2;
+
+        // отклонение в радианах
+        float angleRad = angleDeg * Mathf.Deg2Rad;
+        float x = (float)(r * Math.Cos(theta)) * angleRad;
+        float y = (float)(r * Math.Sin(theta)) * angleRad;
+
+        // строим ортонормальный базис вокруг forward
+        Vector3 f = forward.normalized;
+        Vector3 right = Vector3.Cross(f, Vector3.up);
+        if (right.sqrMagnitude < 0.0001f)
+            right = Vector3.Cross(f, Vector3.forward);
+        right.Normalize();
+        Vector3 up = Vector3.Cross(right, f).normalized;
+
+        // малые углы: dir = f + right*x + up*y
+        Vector3 dir = (f + right * x + up * y);
+        return dir.sqrMagnitude < 0.000001f ? f : dir.normalized;
     }
 }

@@ -1454,7 +1454,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 762bfca829d0bd94fb700c143fffaf28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fireRate: 0.1
+  fireRate: 0.15
   fireMode: 0
   boltReloadTicks: 60
   gunMuzzle: {fileID: 5904446952089910354}
@@ -1464,8 +1464,16 @@ MonoBehaviour:
   hitLayers:
     serializedVersion: 2
     m_Bits: 4294967295
+  scatterAngleDeg: 5
   tracerPrefab: {fileID: -166842759958045252, guid: 40a70f7c44474324e87eb2eacb7203fb,
     type: 3}
+  localTracerUseSpherecast: 1
+  localTracerRadius: 0.06
+  recoilV: 35
+  recoilH: 0
+  recoilTime: 0.04
+  recoilRecoverDelay: 0.1
+  recoilRecoverSpeed: 220
 --- !u!114 &-5356276029104326098
 MonoBehaviour:
   m_ObjectHideFlags: 0
