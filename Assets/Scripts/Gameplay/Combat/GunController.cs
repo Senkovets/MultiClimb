@@ -157,11 +157,9 @@ public class GunController : NetworkBehaviour
                 _nextLocalFxTick += boltReloadTicks;
         }
 
-        // Базовое направление (куда целимся маркером)
-        Vector3 dir = input.AimDirection3D;
-        if (dir.sqrMagnitude < 0.0001f)
-            dir = input.AimDirection;
-
+        // Dukov-style: направление всегда от ствола
+        Vector3 dir = gunMuzzle.forward;
+        dir.y = 0f; // top-down: держим в плоскости XZ (как у тебя поворот)
         if (dir.sqrMagnitude < 0.0001f)
             return;
 
@@ -228,14 +226,13 @@ public class GunController : NetworkBehaviour
 
         Vector3 origin = gunMuzzle.position;
 
-        Vector3 dir = input.AimDirection3D;
-        if (dir.sqrMagnitude < 0.0001f)
-            dir = input.AimDirection;
-
+        Vector3 dir = gunMuzzle.forward;
+        dir.y = 0f; // top-down
         if (dir.sqrMagnitude < 0.0001f)
             return;
 
         dir.Normalize();
+
 
         // Scatter на сервере (тот же seed на этом тике)
         int seed = BuildShotSeed(Runner.Tick);

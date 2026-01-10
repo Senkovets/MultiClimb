@@ -29,6 +29,13 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     [SerializeField] private float aimSensitivity = 1.0f; // подгони (обычно 0.6..1.5)
     [SerializeField] private float aimClampPadding = 10f; // чтобы маркер не упирался в край
 
+    [SerializeField] private float aimDeadZoneMeters = 0.35f;     // зона вокруг origin
+    [SerializeField] private float maxYawSpeedDegPerSec = 900f;   // ограничение скорости
+
+    private float _lastYaw;
+    private Vector3 _lastAimDirXZ = Vector3.forward;
+
+
     private void Start()
     {
         Cursor.visible = false;
@@ -109,12 +116,63 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         RecoilController.Tick(mouseDelta, aimSensitivity);
 
         // === AimPoint/AimDirection as you already do ===
-        Vector3 aimPoint = ComputeAimPoint();
+        Vector3 aimPoint = ComputeAimPointPlaneFirst();
         accumulatedInput.AimPoint = aimPoint;
 
-        Vector3 dirXZ = ComputeAimDirectionXZ(aimPoint);
+        if (LocalPlayer == null)
+        {
+            LastLocalInput = default;
+            return;
+        }
+
+        Vector3 origin = LocalPlayer.transform.position;
+
+        // Dukov-style: если есть gun+Muzzle — считаем yaw от ствола (компенсация правой руки)
+        if (TryGetMuzzle(out Vector3 muzzlePos))
+            origin = muzzlePos;
+
+        Vector3 raw = aimPoint - origin;
+        raw.y = 0f;
+
+        float deadZoneSqr = aimDeadZoneMeters * aimDeadZoneMeters;
+
+        Vector3 dirXZ;
+        float targetYaw;
+
+        if (raw.sqrMagnitude < deadZoneSqr)
+        {
+            // слишком близко к origin → не дёргаем yaw, держим прошлое направление
+            dirXZ = _lastAimDirXZ.sqrMagnitude < 0.0001f ? LocalPlayer.transform.forward : _lastAimDirXZ;
+            dirXZ.y = 0f;
+            dirXZ = dirXZ.sqrMagnitude < 0.0001f ? Vector3.forward : dirXZ.normalized;
+
+            targetYaw = _lastYaw;
+        }
+        else
+        {
+            dirXZ = raw.normalized;
+            targetYaw = Mathf.Atan2(dirXZ.x, dirXZ.z) * Mathf.Rad2Deg;
+        }
+
+        // ограничение скорости поворота
+        float dt = Time.deltaTime;
+        if (dt > 0f)
+        {
+            float maxStep = maxYawSpeedDegPerSec * dt;
+            float newYaw = Mathf.MoveTowardsAngle(_lastYaw, targetYaw, maxStep);
+
+            accumulatedInput.LookYaw = newYaw;
+            _lastYaw = newYaw;
+        }
+        else
+        {
+            accumulatedInput.LookYaw = targetYaw;
+            _lastYaw = targetYaw;
+        }
+
         accumulatedInput.AimDirection = dirXZ;
-        accumulatedInput.LookYaw = Mathf.Atan2(dirXZ.x, dirXZ.z) * Mathf.Rad2Deg;
+        _lastAimDirXZ = dirXZ;
+
 
         Vector3 dir3D = ComputeAimDirectionLikeOldCode(aimPoint, dirXZ);
         accumulatedInput.AimDirection3D = dir3D;
@@ -232,18 +290,16 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         if (accumulatedInput.Direction.sqrMagnitude > 1f)
             accumulatedInput.Direction.Normalize();
 
-        // страховка
-        Vector3 dXZ = accumulatedInput.AimDirection; dXZ.y = 0f;
-        if (dXZ.sqrMagnitude > 0.0001f) dXZ.Normalize(); else dXZ = Vector3.forward;
-        accumulatedInput.AimDirection = dXZ;
-        accumulatedInput.LookYaw = Mathf.Atan2(dXZ.x, dXZ.z) * Mathf.Rad2Deg;
+        // Нормализуем направление, но НЕ пересчитываем yaw — yaw уже рассчитан в BeforeUpdate()
+        Vector3 dXZ = accumulatedInput.AimDirection;
+        dXZ.y = 0f;
 
-        Vector3 d3 = accumulatedInput.AimDirection3D;
-        if (d3.sqrMagnitude > 0.0001f) d3.Normalize(); else d3 = dXZ;
-        accumulatedInput.AimDirection3D = d3;
+        if (dXZ.sqrMagnitude > 0.0001f)
+            accumulatedInput.AimDirection = dXZ.normalized;
+        else
+            accumulatedInput.AimDirection = Vector3.forward;
 
         input.Set(accumulatedInput);
-        resetInput = true;
     }
 
     void INetworkRunnerCallbacks.OnConnectedToServer(NetworkRunner runner) { }
@@ -280,4 +336,76 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     }
 
     void INetworkRunnerCallbacks.OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }
+
+    private bool TryGetMuzzle(out Vector3 muzzlePos)
+    {
+        muzzlePos = default;
+
+        if (LocalPlayer == null)
+            return false;
+
+        GunController gun = LocalPlayer.GetComponentInChildren<GunController>();
+        if (gun == null || gun.Muzzle == null)
+            return false;
+
+        muzzlePos = gun.Muzzle.position;
+        return true;
+    }
+
+    private Vector3 ComputeAimPointPlaneFirst()
+    {
+        if (LocalPlayer == null)
+            return Vector3.zero;
+
+        Camera cam = Camera.main;
+        if (cam == null)
+            return LocalPlayer.transform.position + LocalPlayer.transform.forward * 10f;
+
+        // Луч через виртуальную позицию маркера
+        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
+
+        // 1) СНАЧАЛА плоскость (как в Dukov) — стабильная точка, не зависит от коллайдеров игрока
+        float planeY = LocalPlayer.transform.position.y;
+        Plane plane = new Plane(Vector3.up, new Vector3(0f, planeY, 0f));
+
+        Vector3 planePoint;
+        if (plane.Raycast(ray, out float enter))
+            planePoint = ray.GetPoint(enter);
+        else
+            planePoint = LocalPlayer.transform.position + LocalPlayer.transform.forward * 10f;
+
+        // 2) Опциональная коррекция от Muzzle (простое "прилипание")
+        // Если не хочешь пока это — просто return planePoint;
+        GunController gun = LocalPlayer.GetComponentInChildren<GunController>(true);
+        if (gun == null || gun.Muzzle == null)
+            return planePoint;
+
+        Vector3 muzzlePos = gun.Muzzle.position;
+
+        Vector3 dir = planePoint - muzzlePos;
+        dir.y = 0f;
+
+        if (dir.sqrMagnitude < 0.0001f)
+            return planePoint;
+
+        dir.Normalize();
+
+        // Радиус и дистанцию подстрой, это безопасные стартовые значения
+        const float radius = 0.20f;
+        const float maxDist = 200f;
+
+        // ВАЖНО: aimMask должен НЕ включать слой игрока/хитбоксов, иначе снова словишь дребезг.
+        if (Physics.SphereCast(muzzlePos, radius, dir, out RaycastHit hit, maxDist, aimMask, QueryTriggerInteraction.Ignore))
+        {
+            // Игнорируем попадание в самого себя (если вдруг слой всё-таки попал)
+            if (hit.collider != null && hit.collider.transform.IsChildOf(LocalPlayer.transform))
+                return planePoint;
+
+            return hit.point;
+        }
+
+        return planePoint;
+    }
+
+
 }
