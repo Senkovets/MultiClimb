@@ -360,16 +360,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceb8433a15cbb9740b8c7b3fa52adcaf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  crosshairColor: {r: 1, g: 1, b: 1, a: 1}
+  crosshairColor:
+    r: 1
+    g: 1
+    b: 1
+    a: 1
   size: 10
   thickness: 2
   baseGap: 5
   scatterMultiplier: 5
-  headshotColor: {r: 0, g: 1, b: 1, a: 1}
+  headshotColor:
+    r: 0
+    g: 1
+    b: 1
+    a: 1
   aimDistance: 100
   hitboxLayers:
-    serializedVersion: 2
     m_Bits: 1
+  cam: {fileID: 0}
+  crosshairTexture: {fileID: 0}
 --- !u!114 &330585551
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -578,7 +587,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe86df4b14c3ce149a998d0d72100cf5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _crosshairUI: {fileID: 0}
   _cameraShaker: {fileID: 0}
   _cameraCursorFollow: {fileID: 0}
   _VCamera: {fileID: 0}
@@ -3230,6 +3238,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   marker: {fileID: 1772732418}
   canvas: {fileID: 1835609159}
+  markerImage: {fileID: 1772732420}
+  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  criticalColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!114 &1772732420
 MonoBehaviour:
   m_ObjectHideFlags: 0

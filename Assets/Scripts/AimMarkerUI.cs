@@ -1,31 +1,51 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 public class AimMarkerUI : MonoBehaviour
 {
+    [Header("References")]
     [SerializeField] private RectTransform marker;
     [SerializeField] private Canvas canvas;
+    [SerializeField] private Image markerImage;
 
-    private void Reset()
+    [Header("Colors")]
+    [SerializeField] private Color normalColor = Color.white;
+    [SerializeField] private Color criticalColor = Color.red;
+
+    private InputManager _inputManager;
+
+    private void Awake()
     {
-        canvas = GetComponentInParent<Canvas>();
-        marker = GetComponent<RectTransform>();
+        if (canvas == null)
+            canvas = GetComponentInParent<Canvas>();
+
+        if (marker == null)
+            marker = GetComponent<RectTransform>();
+
+        if (markerImage == null)
+            markerImage = GetComponent<Image>();
+
+        _inputManager = FindFirstObjectByType<InputManager>();
     }
 
     private void LateUpdate()
     {
-        if (marker == null)
-            return;
+        UpdatePosition();
+        UpdateColor();
+    }
 
+    private void UpdatePosition()
+    {
         Vector2 screenPos = RecoilController.GetAimScreenPosition();
 
-        // Screen Space Overlay: просто ставим позицию в screen-space
+        // Screen Space Overlay — самый простой и надёжный вариант
         if (canvas == null || canvas.renderMode == RenderMode.ScreenSpaceOverlay)
         {
             marker.position = screenPos;
             return;
         }
 
-        // Screen Space Camera / World Space:
+        // Screen Space Camera / World Space
         Camera cam = canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
         if (cam == null)
         {
@@ -40,9 +60,31 @@ public class AimMarkerUI : MonoBehaviour
             return;
         }
 
-        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screenPos, cam, out var local))
-            marker.localPosition = local;
-        else
-            marker.position = screenPos;
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                canvasRect,
+                screenPos,
+                cam,
+                out Vector2 localPos))
+        {
+            marker.localPosition = localPos;
+        }
+    }
+
+    private void UpdateColor()
+    {
+        if (markerImage == null || _inputManager == null)
+        {
+            //Debug.LogError("markerImage:" + markerImage);
+            //Debug.LogError("_inputManager:" + _inputManager);
+            _inputManager = FindFirstObjectByType<InputManager>();  //появляется только при старте сцены game
+            return;
+        }
+            
+
+       // Debug.LogError("UpdateColor");
+        // Источник истины — последний локальный инпут
+        bool isCritical = _inputManager.LastLocalInput.IsCriticalAim;
+
+        markerImage.color = isCritical ? criticalColor : normalColor;
     }
 }

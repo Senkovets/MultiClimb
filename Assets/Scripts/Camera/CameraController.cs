@@ -22,8 +22,6 @@ public class CameraController : MonoBehaviour
     private static CameraController _singleton;
 
     [SerializeField]
-    private CrosshairUI _crosshairUI;
-    [SerializeField]
     private CameraShaker _cameraShaker;
     [SerializeField]
     private CameraCursorFollow _cameraCursorFollow;
@@ -36,7 +34,6 @@ public class CameraController : MonoBehaviour
     private void Awake()
     {
         Singleton = this;
-        _crosshairUI = GetComponent<CrosshairUI>();
         _cameraShaker = GetComponent<CameraShaker>();
         _cameraCursorFollow = GetComponent<CameraCursorFollow>();
         _VCamera = GetComponent<CinemachineVirtualCamera>();

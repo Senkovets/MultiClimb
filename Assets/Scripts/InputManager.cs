@@ -29,6 +29,12 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     [SerializeField] private float aimSensitivity = 1.0f; // подгони (обычно 0.6..1.5)
     [SerializeField] private float aimClampPadding = 10f; // чтобы маркер не упирался в край
 
+    private void Start()
+    {
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Confined;
+    }
+
     void IBeforeUpdate.BeforeUpdate()
     {
         if (resetInput)
