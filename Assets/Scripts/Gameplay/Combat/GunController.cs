@@ -197,6 +197,9 @@ public class GunController : NetworkBehaviour
 
     private void SpawnLocalPredictedTracer(Vector3 dir)
     {
+        bool hitFlesh = false;
+        Vector3 hitNormal = -dir; // fallback
+
         Vector3 start = gunMuzzle.position;
 
         Vector3 end = start + dir * maxDistance;
@@ -208,6 +211,12 @@ public class GunController : NetworkBehaviour
             {
                 end = hit.point;
                 distance = hit.distance;
+                hitNormal = hit.normal;
+
+                // Критерий “это игрок”: PlayerHitbox или NetworkHealth/Player в родителях
+                hitFlesh =
+                    hit.collider.GetComponentInParent<NetworkHealth>() != null ||
+                    hit.collider.GetComponentInParent<Player>() != null;
             }
         }
         else
@@ -216,13 +225,20 @@ public class GunController : NetworkBehaviour
             {
                 end = hit.point;
                 distance = hit.distance;
+                hitNormal = hit.normal;
+
+                hitFlesh =
+                    hit.collider.GetComponentInParent<NetworkHealth>() != null ||
+                    hit.collider.GetComponentInParent<Player>() != null;
             }
         }
 
         float travelTime = Mathf.Max(0.02f, distance / Mathf.Max(0.001f, bulletSpeed));
 
         TracerFx fx = Instantiate(tracerPrefab);
-        fx.Play(start, end, travelTime); // ВАЖНО: 3-й параметр duration обязателен
+        fx.Play(start, end, travelTime);
+        fx.SetImpact(hitFlesh, hitNormal);
+
         shellEmitter.Emit(1);
         if (muzzleFxPrefab)
             Instantiate(muzzleFxPrefab, muzzle.position, muzzle.rotation, muzzle);
@@ -290,10 +306,18 @@ public class GunController : NetworkBehaviour
         float travelTime = Mathf.Max(0.02f, dist / Mathf.Max(0.001f, bulletSpeed));
         int travelTicks = Mathf.Max(1, Mathf.RoundToInt(travelTime * Runner.TickRate));
 
+        bool hitFlesh = (didHit && targetObj != null); // для твоей структуры этого достаточно
+        Vector3 hitNormal = -dir; // если нет нормали из lag hit
+
+        NetworkHealth health;
+        hitFlesh = targetObj != null && targetObj.TryGetComponent(out health);
+
         // подтверждённый FX видят все КРОМЕ стрелка (Plan A)
-        RPC_SpawnTracerConfirmed(origin, endPoint, travelTicks);
+        RPC_SpawnTracerConfirmed(origin, endPoint, travelTicks, hitFlesh, hitNormal);
         RPC_EjectShell();
         RPC_MuzzleFx();
+       
+
 
         if (didHit && targetObj != null && targetObj.IsValid)
         {
@@ -375,6 +399,23 @@ public class GunController : NetworkBehaviour
         if (muzzleFxPrefab)
             Instantiate(muzzleFxPrefab, muzzle.position, muzzle.rotation, muzzle);
     }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_SpawnTracerConfirmed(Vector3 start, Vector3 end, int travelTicks, bool hitFlesh, Vector3 hitNormal)
+    {
+        if (HasInputAuthority)
+            return;
+
+        if (tracerPrefab == null || Runner == null)
+            return;
+
+        float duration = Mathf.Max(0.02f, travelTicks / (float)Runner.TickRate);
+
+        TracerFx fx = Instantiate(tracerPrefab);
+        fx.Play(start, end, duration);
+        fx.SetImpact(hitFlesh, hitNormal);
+    }
+
 
     // ===== Scatter helpers =====
 

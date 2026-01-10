@@ -203,3 +203,7 @@ MonoBehaviour:
   destroyDelay: 0.02
   rotateAlongMove: 1
   rotateFromStartToEndOnly: 0
+  bulletHitFxPrefab: {fileID: 1611098492367466, guid: 922d8cfcc6f3fa643884ff85c5256591,
+    type: 3}
+  bloodHitFxPrefab: {fileID: 1027080623365512, guid: 8c283664f85a9674a94326c166cf0e45,
+    type: 3}

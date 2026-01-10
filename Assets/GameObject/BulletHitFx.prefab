@@ -9339,8 +9339,7 @@ GameObject:
   - component: {fileID: 4283148844457859}
   - component: {fileID: 198228167931696837}
   - component: {fileID: 199239236455024544}
-  - component: {fileID: 114861361899552685}
-  - component: {fileID: 114664353452791675}
+  - component: {fileID: 313697656508697175}
   m_Layer: 0
   m_Name: BulletHitFx
   m_TagString: Untagged
@@ -11657,7 +11656,7 @@ ParticleSystemRenderer:
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
   m_MaskInteraction: 0
---- !u!114 &114861361899552685
+--- !u!114 &313697656508697175
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -11666,20 +11665,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1611098492367466}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1444299846, guid: d551df320acceeb317a9e97502ade12f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sfx: SFX/Combat/Hit/hit_solid
---- !u!114 &114664353452791675
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1611098492367466}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1521760531, guid: d551df320acceeb317a9e97502ade12f, type: 3}
+  m_Script: {fileID: 11500000, guid: 0b11ee3e4456585409fac1c395b1ea12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   life: 1.5

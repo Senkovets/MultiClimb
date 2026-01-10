@@ -3,20 +3,27 @@
 public class TracerFx : MonoBehaviour
 {
     [Header("Refs")]
-    [SerializeField] private TrailRenderer trail;   // перетащи сюда TrailRenderer с дочернего Visual
+    [SerializeField] private TrailRenderer trail;
 
     [Header("Destroy")]
     [SerializeField] private float destroyDelay = 0.02f;
 
     [Header("Rotation")]
-    [SerializeField] private bool rotateAlongMove = true; // чтобы гарантированно смотрел по движению
-    [SerializeField] private bool rotateFromStartToEndOnly = false; // если хочешь как раньше — один раз
+    [SerializeField] private bool rotateAlongMove = true;
+    [SerializeField] private bool rotateFromStartToEndOnly = false;
+
+    [Header("Impact FX")]
+    [SerializeField] private GameObject bulletHitFxPrefab;  // обычный
+    [SerializeField] private GameObject bloodHitFxPrefab;   // кровь
+
+    private bool _hitIsFlesh;
+    private Vector3 _hitNormal;
+    private bool _hasImpact;
 
     private Vector3 _start;
     private Vector3 _end;
     private float _duration;
     private float _t;
-
     private Vector3 _prevPos;
 
     public void Play(Vector3 start, Vector3 end, float duration)
@@ -29,17 +36,27 @@ public class TracerFx : MonoBehaviour
         transform.position = _start;
         _prevPos = _start;
 
-        // Поворот как у тебя раньше (по start->end)
+        _hasImpact = false;
+        _hitIsFlesh = false;
+        _hitNormal = Vector3.zero;
+
         Vector3 dir = _end - _start;
         if (dir.sqrMagnitude > 0.000001f)
             transform.rotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
 
-        // Trail: сброс, чтобы не тянул из прошлого (особенно если будет пул)
         if (trail != null)
         {
             trail.Clear();
             trail.emitting = true;
         }
+    }
+
+    // ВЫЗЫВАЙ после Play()
+    public void SetImpact(bool hitIsFlesh, Vector3 hitNormal)
+    {
+        _hasImpact = true;
+        _hitIsFlesh = hitIsFlesh;
+        _hitNormal = hitNormal;
     }
 
     private void Update()
@@ -50,20 +67,12 @@ public class TracerFx : MonoBehaviour
         Vector3 pos = Vector3.LerpUnclamped(_start, _end, a);
         transform.position = pos;
 
-        // Поворот по движению (исправляет “не туда смотрит” при любых кейсах)
         if (rotateAlongMove && !rotateFromStartToEndOnly)
         {
             Vector3 move = pos - _prevPos;
             if (move.sqrMagnitude > 0.0000005f)
                 transform.rotation = Quaternion.LookRotation(move.normalized, Vector3.up);
         }
-
-        if (trail != null)
-        {
-            float pulse = 1f + Mathf.Sin(Time.time * 80f) * 0.1f;
-            trail.widthMultiplier = pulse;
-        }
-
 
         _prevPos = pos;
 
@@ -72,7 +81,24 @@ public class TracerFx : MonoBehaviour
             if (trail != null)
                 trail.emitting = false;
 
+            SpawnImpactFx();
+
             Destroy(gameObject, destroyDelay);
         }
+    }
+
+    private void SpawnImpactFx()
+    {
+        // Если нет данных — считаем “обычное попадание”
+        GameObject prefab = _hitIsFlesh ? bloodHitFxPrefab : bulletHitFxPrefab;
+        if (prefab == null)
+            return;
+
+        // Ориентация по нормали, если есть
+        Quaternion rot = transform.rotation;
+        if (_hasImpact && _hitNormal.sqrMagnitude > 0.0001f)
+            rot = Quaternion.LookRotation(_hitNormal);
+
+        Instantiate(prefab, transform.position, rot);
     }
 }
