@@ -4,38 +4,62 @@ using UnityEngine;
 
 public class DamagePopupSpawner : MonoBehaviour
 {
+    [Header("Prefab")]
     [SerializeField] private TMP_Text popupPrefab;
+
+    [Header("Lifetime")]
     [SerializeField] private float lifeTime = 0.9f;
     [SerializeField] private float rise = 0.9f;
-    [SerializeField] private float spread = 0.25f;
 
+    [Header("Spread")]
+    [SerializeField] private float spreadXZ = 0.25f;
+
+    [Header("Vertical Offset")]
+    [SerializeField] private float baseYOffset = 1f;        // базовое смещение вверх
+    [SerializeField] private float randomYOffset = 0.24f;     // случайный Y
     public void Pop(float damage, Vector3 worldPoint, bool crit)
     {
         if (!popupPrefab) return;
 
-        var t = Instantiate(popupPrefab);
-        t.text = crit ? damage.ToString("0") : damage.ToString("0");
-        t.transform.position = worldPoint + Vector3.up * 0.2f;
+        TMP_Text t = Instantiate(popupPrefab);
 
-        // Случайное смещение
-        Vector3 dir = new Vector3(Random.Range(-spread, spread), 0f, Random.Range(-spread, spread));
-        Vector3 start = t.transform.position + dir;
-        Vector3 end = start + Vector3.up * rise;
+        t.text = damage.ToString("0");
+
+        // --- стартовая позиция ---
+        float yOffset =
+            baseYOffset +
+            Random.Range(0f, randomYOffset);
+
+        Vector3 start = worldPoint + Vector3.up * yOffset;
+
+        // случайное XZ смещение
+        start += new Vector3(
+            Random.Range(-spreadXZ, spreadXZ),
+            0f,
+            Random.Range(-spreadXZ, spreadXZ)
+        );
 
         t.transform.position = start;
 
-        // Взгляд на камеру (простая версия)
+        // --- Billboard к камере ---
         if (Camera.main)
-            t.transform.rotation = Quaternion.LookRotation(t.transform.position - Camera.main.transform.position);
+        {
+            Transform cam = Camera.main.transform;
+            Vector3 lookDir = t.transform.position - cam.position;
+            t.transform.rotation = Quaternion.LookRotation(lookDir, Vector3.up);
+        }
 
-        // Анимация: всплытие + fade + punch scale
-        var c0 = t.color;
-        var c1 = c0; c1.a = 0f;
+        // --- визуал ---
+        Color c0 = t.color;
+        Color c1 = c0;
+        c1.a = 0f;
 
         float punch = crit ? 0.28f : 0.18f;
 
         t.transform.localScale = Vector3.one;
         t.transform.DOPunchScale(Vector3.one * punch, 0.18f, 10, 0.9f);
+
+        Vector3 end = start + Vector3.up * rise;
 
         Sequence s = DOTween.Sequence();
         s.Join(t.transform.DOMove(end, lifeTime).SetEase(Ease.OutQuad));

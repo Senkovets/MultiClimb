@@ -432,7 +432,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.24528301, g: 0.08659591, b: 0.059392404, a: 1}
+  m_Color: {r: 0.4528302, g: 0.09338464, b: 0.066927694, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -917,7 +917,9 @@ MonoBehaviour:
   fill: {fileID: 8198799406878584011}
   followFill: {fileID: 9019080502339987294}
   blinkOverlay: {fileID: 8679391927567804263}
-  followDuration: 0.12
+  followDuration: 0.45
+  followDelay: 0.08
+  followEase: 9
   punchScale: 0.12
   punchDuration: 0.1
   blinkDuration: 0.1
@@ -1405,6 +1407,8 @@ GameObject:
   - component: {fileID: 2526720971422132695}
   - component: {fileID: 2730186348420807200}
   - component: {fileID: 2777629717435692466}
+  - component: {fileID: 473168379050047723}
+  - component: {fileID: 6327357170661213130}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -1453,6 +1457,7 @@ MonoBehaviour:
   - {fileID: 8686857379923021993}
   - {fileID: 5512796162034683420}
   - {fileID: -5356276029104326098}
+  - {fileID: 473168379050047723}
 --- !u!54 &5555162426367305650
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1706,6 +1711,41 @@ MonoBehaviour:
   multiplier: 1
   upTime: 0.03
   downTime: 0.18
+--- !u!114 &473168379050047723
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9040168462585498880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e813677c992120b4885ef656ef5a4510, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  health: {fileID: -5356276029104326098}
+  debugDamage: 10
+  debugCrit: 0
+  localHitOffset: {x: 0, y: 1.2, z: 0}
+--- !u!114 &6327357170661213130
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9040168462585498880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b9c8c80c1471eaf45b614a7fad8f1e0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  popupPrefab: {fileID: 5244567105278234233, guid: f3cb163a06770c74ea5ca7c2b78bcdab,
+    type: 3}
+  lifeTime: 0.9
+  rise: 0.9
+  spreadXZ: 0.25
+  baseYOffset: 2
+  randomYOffset: 0.24
 --- !u!1001 &2910617930282058689
 PrefabInstance:
   m_ObjectHideFlags: 0

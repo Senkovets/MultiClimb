@@ -358,7 +358,7 @@ public class GunController : NetworkBehaviour
                 continue;
 
             float finalDamage = pd.IsCritical ? pd.Damage * 2f : pd.Damage;
-            health.ApplyDamage(finalDamage, pd.Owner, Vector3.one, pd.IsCritical); // вместо Player.TakeDamage
+            health.ApplyDamage(finalDamage, pd.Owner, health.transform.position, pd.IsCritical); // вместо Player.TakeDamage
         }
     }
 

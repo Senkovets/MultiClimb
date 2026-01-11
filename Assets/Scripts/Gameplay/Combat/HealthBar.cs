@@ -10,7 +10,9 @@ public class HealthBar : MonoBehaviour
     [SerializeField] private Image blinkOverlay; // optional (прозрачная поверх бара)
 
     [Header("Follow")]
-    [SerializeField] private float followDuration = 0.12f;
+    [SerializeField] private float followDuration = 0.45f;
+    [SerializeField] private float followDelay = 0.08f;
+    [SerializeField] private Ease followEase = Ease.OutCubic;
 
     [Header("Feedback")]
     [SerializeField] private float punchScale = 0.12f;
@@ -63,13 +65,17 @@ public class HealthBar : MonoBehaviour
         if (followFill != null)
         {
             followTween?.Kill();
+
             if (instant)
             {
                 followFill.fillAmount = t;
             }
             else
             {
-                followTween = followFill.DOFillAmount(t, followDuration).SetEase(Ease.OutQuad);
+                followTween = followFill
+                    .DOFillAmount(t, followDuration)
+                    .SetDelay(followDelay)
+                    .SetEase(followEase);
             }
         }
     }
