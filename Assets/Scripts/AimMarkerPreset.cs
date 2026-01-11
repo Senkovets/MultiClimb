@@ -58,8 +58,6 @@ public class AimMarkerPreset : MonoBehaviour
         float size = baseSize + _scatter * scatterExpandMultiplier;
         followUI.sizeDelta = new Vector2(size, size);
 
-        Debug.LogError(_scatter);
-
         float offset = baseOffset + _scatter * scatterOffsetMultiplier;
 
         if (up != null) up.anchoredPosition = new Vector2(0, offset);

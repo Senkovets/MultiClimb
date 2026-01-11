@@ -165,7 +165,14 @@ public class Player : NetworkBehaviour
         if (!GetInput(out NetInput input))
             return;
 
-        kcc.SetLookRotation(0f, input.LookYaw);
+        Vector3 aim = input.AimDirection3D;
+        aim.y = 0f;
+
+        if (aim.sqrMagnitude > 0.0001f)
+        {
+            float yaw = Mathf.Atan2(aim.x, aim.z) * Mathf.Rad2Deg;
+            kcc.SetLookRotation(0f, yaw);
+        }
 
         SelectedAbility = input.AbilityMode;
         CheckGlide(input);

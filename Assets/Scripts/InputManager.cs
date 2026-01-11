@@ -174,8 +174,13 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         _lastAimDirXZ = dirXZ;
 
 
+        
+
         Vector3 dir3D = ComputeAimDirectionLikeOldCode(aimPoint, dirXZ);
         accumulatedInput.AimDirection3D = dir3D;
+
+        Debug.DrawRay(LocalPlayer.transform.position, dir3D, Color.red);
+        Debug.DrawRay(LocalPlayer.transform.position, dirXZ, Color.cyan);
 
         accumulatedInput.IsCriticalAim = IsAimingAtHead();
 

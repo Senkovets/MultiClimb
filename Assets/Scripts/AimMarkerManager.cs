@@ -54,8 +54,6 @@ public class AimMarkerManager : MonoBehaviour
             weaponScatter = _cachedGun.CurrentScatter; // константа, как ты хотел
 
         // Итоговый scatter для UI: базовый (weapon) + накопленный (ui)
-        Debug.LogError("_uiSpread :" + _uiSpread);
-        Debug.LogError("weaponScatter :" + weaponScatter);
         currentPreset.SetScatter(weaponScatter + _uiSpread);
 
         // 3) крит — из InputManager (кэшируем)
