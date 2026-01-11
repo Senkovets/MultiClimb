@@ -112,7 +112,7 @@ public class NetworkProjectile : NetworkBehaviour
             if (health != null)
             {
                 float finalDamage = IsCritical ? damage * 2f : damage;
-                health.ApplyDamage(finalDamage, Owner);
+              //  health.ApplyDamage(finalDamage, Owner);
             }
 
             // 1 тик на синхрон, затем despawn

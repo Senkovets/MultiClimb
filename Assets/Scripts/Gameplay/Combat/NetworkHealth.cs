@@ -8,13 +8,26 @@ public class NetworkHealth : NetworkBehaviour
 
     public float MaxHealth { get; private set; } = 100f;
 
+    // "Событие урона" (каждый хит увеличивает seq)
+    [Networked, OnChangedRender(nameof(OnDamageEvent))]
+    private int DamageSeq { get; set; }
+
+    // Payload для визуала (реплицируется вместе с DamageSeq)
+    [Networked] private float LastDamage { get; set; }
+    [Networked] private byte LastWasCrit { get; set; } // 0/1
+    [Networked] private Vector3 LastHitPoint { get; set; }
+
     private Player owner;
     private HealthBar bar;
+    private HurtVisual hurtVisual;
+    private DamagePopupSpawner damagePopup;
 
     public override void Spawned()
     {
         owner = GetComponent<Player>();
         bar = GetComponentInChildren<HealthBar>(true);
+        hurtVisual = GetComponentInChildren<HurtVisual>(true);
+        damagePopup = GetComponentInChildren<DamagePopupSpawner>(true);
 
         if (HasStateAuthority)
             CurrentHealth = MaxHealth;
@@ -22,7 +35,7 @@ public class NetworkHealth : NetworkBehaviour
         bar?.Init(this);
     }
 
-    public void ApplyDamage(float damage, Player attacker)
+    public void ApplyDamage(float damage, Player attacker, Vector3 hitPoint, bool isCrit = false)
     {
         if (!HasStateAuthority)
             return;
@@ -30,7 +43,16 @@ public class NetworkHealth : NetworkBehaviour
         if (CurrentHealth <= 0f)
             return;
 
-        CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
+        float newHealth = Mathf.Max(0f, CurrentHealth - damage);
+
+        // Payload для клиентов
+        LastDamage = damage;
+        LastWasCrit = (byte)(isCrit ? 1 : 0);
+        LastHitPoint = hitPoint;
+
+        // ВАЖНО: сначала обновляем здоровье, потом "событие"
+        CurrentHealth = newHealth;
+        DamageSeq++;
 
         if (CurrentHealth == 0f)
             HandleDeath(attacker);
@@ -41,11 +63,8 @@ public class NetworkHealth : NetworkBehaviour
         if (attacker != null && attacker != owner)
             attacker.AddKill();
 
-        if(owner != null)
-        {
+        if (owner != null)
             owner.Respawn();
-        }
-        
     }
 
     public void ResetHealth()
@@ -56,6 +75,16 @@ public class NetworkHealth : NetworkBehaviour
 
     private void OnHealthChanged()
     {
-        bar?.UpdateBar();
+        bar?.UpdateBar(); // просто fill
+    }
+
+    private void OnDamageEvent()
+    {
+        // Это вызовется на всех клиентах (Render side) на каждый хит
+        bool crit = LastWasCrit != 0;
+
+        bar?.PlayDamageFeedback(LastDamage, crit);
+        hurtVisual?.PlayHurt(crit);
+        damagePopup?.Pop(LastDamage, LastHitPoint, crit);
     }
 }
