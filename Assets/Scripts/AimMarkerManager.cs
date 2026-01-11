@@ -7,8 +7,30 @@ public class AimMarkerManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private AimMarkerPreset currentPreset;
 
+    [Header("UI Spread (independent from weapon scatter)")]
+    [Tooltip("Сколько добавлять к UI-разлёту лепестков на каждый выстрел.")]
+    [SerializeField] private float uiSpreadIncreasePerShot = 1.0f;
+
+    [Tooltip("Скорость схода UI-разлёта обратно к 0 (в единицах/сек).")]
+    [SerializeField] private float uiSpreadRecoverSpeed = 6.0f;
+
+    [Tooltip("Максимальный UI-разлёт (добавляется к базовому weapon scatter).")]
+    [SerializeField] private float uiSpreadMax = 16.0f;
+
+    private float _uiSpread;
+
+    // небольшие кэши, чтобы не делать FindObjectOfType каждый кадр
+    private GunController _cachedGun;
+    private InputManager _cachedInput;
+
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
     }
 
@@ -17,25 +39,40 @@ public class AimMarkerManager : MonoBehaviour
         if (currentPreset == null)
             return;
 
-        // 1) позиция прицела — из твоего RecoilController
-        Vector2 screenPos = RecoilController.GetAimScreenPosition();
-        currentPreset.SetScreenPosition(screenPos);
+        // 0) восстановление UI-разлёта
+        _uiSpread = Mathf.MoveTowards(_uiSpread, 0f, uiSpreadRecoverSpeed * Time.deltaTime);
 
-        // 2) scatter — из текущего оружия
-        GunController gun = FindCurrentGun();
-       // if (gun != null)
-           // currentPreset.SetScatter(gun.CurrentScatter);
+        // 1) позиция прицела — из RecoilController
+        currentPreset.SetScreenPosition(RecoilController.GetAimScreenPosition());
 
-        // 3) крит — из InputManager
-     /*   InputManager im = FindObjectOfType<InputManager>();
-        if (im != null)
-            currentPreset.SetCritical(im.LastLocalInput.IsCriticalAim);*/
+        // 2) gun (кэшируем)
+        if (_cachedGun == null)
+            _cachedGun = FindCurrentGun();
+
+        float weaponScatter = 0f;
+        if (_cachedGun != null)
+            weaponScatter = _cachedGun.CurrentScatter; // константа, как ты хотел
+
+        // Итоговый scatter для UI: базовый (weapon) + накопленный (ui)
+        Debug.LogError("_uiSpread :" + _uiSpread);
+        Debug.LogError("weaponScatter :" + weaponScatter);
+        currentPreset.SetScatter(weaponScatter + _uiSpread);
+
+        // 3) крит — из InputManager (кэшируем)
+        if (_cachedInput == null)
+            _cachedInput = FindObjectOfType<InputManager>();
+
+        if (_cachedInput != null)
+            currentPreset.SetCritical(_cachedInput.LastLocalInput.IsCriticalAim);
     }
 
     public void OnShoot()
     {
-        if (currentPreset != null)
-            currentPreset.OnShoot();
+        // на каждый выстрел добавляем UI-разлёт
+        _uiSpread = Mathf.Min(_uiSpread + uiSpreadIncreasePerShot, uiSpreadMax);
+
+        // и визуальный punch
+        currentPreset?.OnShoot();
     }
 
     public void SwitchPreset(AimMarkerPreset newPreset)
@@ -44,6 +81,9 @@ public class AimMarkerManager : MonoBehaviour
             Destroy(currentPreset.gameObject);
 
         currentPreset = newPreset;
+
+        // при смене пресета можно сбросить накопление, чтобы не переносилось между оружиями
+        _uiSpread = 0f;
     }
 
     private GunController FindCurrentGun()
@@ -52,6 +92,6 @@ public class AimMarkerManager : MonoBehaviour
         if (p == null)
             return null;
 
-        return p.GetComponentInChildren<GunController>();
+        return p.GetComponentInChildren<GunController>(true);
     }
 }

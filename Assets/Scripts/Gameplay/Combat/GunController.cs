@@ -22,6 +22,8 @@ public class GunController : NetworkBehaviour
     [Header("Scatter (bullet spread)")]
     [Tooltip("Угол конуса разброса в градусах. 0 = без разброса.")]
     [SerializeField] private float scatterAngleDeg = 1.25f;
+    public float CurrentScatter => scatterAngleDeg;
+
 
     [Header("Visual (NOT network)")]
     [SerializeField] private TracerFx tracerPrefab;
@@ -192,6 +194,8 @@ public class GunController : NetworkBehaviour
             // fallback (как было)
             RecoilController.NotifyShot(recoilV, recoilH, recoilTime, recoilRecoverDelay, recoilRecoverSpeed);
         }
+
+        AimMarkerManager.Instance?.OnShoot();
     }
 
 

@@ -14,7 +14,7 @@ public class AimMarkerPreset : MonoBehaviour
     [SerializeField] private float followMaxDistance = 30f;
 
     [Header("Punch On Shoot")]
-   // [SerializeField] private List<PunchReceiver> punchReceivers = new();
+    [SerializeField] private List<PunchReceiver> punchReceivers = new();
 
     [Header("Scatter Visual")]
     [SerializeField] private float scatterExpandMultiplier = 5f;
@@ -24,6 +24,16 @@ public class AimMarkerPreset : MonoBehaviour
     [SerializeField] private Graphic markerGraphic;
     [SerializeField] private Color normalColor = Color.white;
     [SerializeField] private Color criticalColor = Color.red;
+
+    [Header("Crosshair Petals")]
+    [SerializeField] private RectTransform up;
+    [SerializeField] private RectTransform down;
+    [SerializeField] private RectTransform left;
+    [SerializeField] private RectTransform right;
+
+    [SerializeField] private float baseOffset = 8f;
+    [SerializeField] private float scatterOffsetMultiplier = 6f;
+
 
     private float _scatter;
     private bool _isCritical;
@@ -47,6 +57,16 @@ public class AimMarkerPreset : MonoBehaviour
         // === Scatter expansion (простая версия) ===
         float size = baseSize + _scatter * scatterExpandMultiplier;
         followUI.sizeDelta = new Vector2(size, size);
+
+        Debug.LogError(_scatter);
+
+        float offset = baseOffset + _scatter * scatterOffsetMultiplier;
+
+        if (up != null) up.anchoredPosition = new Vector2(0, offset);
+        if (down != null) down.anchoredPosition = new Vector2(0, -offset);
+        if (left != null) left.anchoredPosition = new Vector2(-offset, 0);
+        if (right != null) right.anchoredPosition = new Vector2(offset, 0);
+
     }
 
     // ===== API, которое дергает Manager =====
@@ -71,11 +91,11 @@ public class AimMarkerPreset : MonoBehaviour
 
     public void OnShoot()
     {
-     /*   for (int i = 0; i < punchReceivers.Count; i++)
+        for (int i = 0; i < punchReceivers.Count; i++)
         {
             if (punchReceivers[i] != null)
                 punchReceivers[i].Punch();
-        }*/
+        }
     }
 
     public void SetAlpha(float alpha)
