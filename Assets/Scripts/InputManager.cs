@@ -29,8 +29,8 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     [SerializeField] private float aimSensitivity = 1.0f; // подгони (обычно 0.6..1.5)
     [SerializeField] private float aimClampPadding = 10f; // чтобы маркер не упирался в край
 
-    [SerializeField] private float aimDeadZoneMeters = 0.35f;     // зона вокруг origin
-    [SerializeField] private float maxYawSpeedDegPerSec = 900f;   // ограничение скорости
+    [SerializeField] private float aimDeadZoneMeters = 0.5f;     // зона вокруг origin
+    [SerializeField] private float maxYawSpeedDegPerSec = 240f;   // ограничение скорости
 
     private float _lastYaw;
     private Vector3 _lastAimDirXZ = Vector3.forward;
@@ -127,10 +127,10 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 
         Vector3 origin = LocalPlayer.transform.position;
 
-        // Dukov-style: если есть gun+Muzzle — считаем yaw от ствола (компенсация правой руки)
+      /*  // Dukov-style: если есть gun+Muzzle — считаем yaw от ствола (компенсация правой руки)
         if (TryGetMuzzle(out Vector3 muzzlePos))
             origin = muzzlePos;
-
+*/
         Vector3 raw = aimPoint - origin;
         raw.y = 0f;
 
@@ -172,8 +172,6 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 
         accumulatedInput.AimDirection = dirXZ;
         _lastAimDirXZ = dirXZ;
-
-
         
 
         Vector3 dir3D = ComputeAimDirectionLikeOldCode(aimPoint, dirXZ);
@@ -185,46 +183,6 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         accumulatedInput.IsCriticalAim = IsAimingAtHead();
 
         LastLocalInput = accumulatedInput;
-    }
-
-    private Vector3 ComputeAimPoint()
-    {
-        if (LocalPlayer == null)
-            return Vector3.zero;
-
-        Camera cam = Camera.main;
-        if (cam == null)
-            return LocalPlayer.transform.position + LocalPlayer.transform.forward * 10f;
-
-        Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
-
-        if (Physics.Raycast(ray, out RaycastHit hit, aimMaxDistance, aimMask, QueryTriggerInteraction.Ignore))
-            return hit.point;
-
-        // fallback: плоскость на высоте игрока
-        Plane plane = new Plane(Vector3.up, new Vector3(0f, LocalPlayer.transform.position.y, 0f));
-        if (plane.Raycast(ray, out float enter))
-            return ray.GetPoint(enter);
-
-        return LocalPlayer.transform.position + LocalPlayer.transform.forward * 10f;
-    }
-
-    private Vector3 ComputeAimDirectionXZ(Vector3 aimPoint)
-    {
-        if (LocalPlayer == null)
-            return Vector3.forward;
-
-        Vector3 dir = aimPoint - LocalPlayer.transform.position;
-        dir.y = 0f;
-
-        if (dir.sqrMagnitude < 0.0001f)
-        {
-            Vector3 fb = LocalPlayer.transform.forward;
-            fb.y = 0f;
-            return fb.sqrMagnitude < 0.0001f ? Vector3.forward : fb.normalized;
-        }
-
-        return dir.normalized;
     }
 
     // Это прямой перенос твоей логики fireDirection5

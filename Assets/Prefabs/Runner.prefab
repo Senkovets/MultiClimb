@@ -58,3 +58,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   LocalPlayer: {fileID: 0}
+  aimMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  aimMaxDistance: 2000
+  hitboxLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  headCheckDistance: 100
+  aimSensitivity: 1
+  aimClampPadding: 10
+  aimDeadZoneMeters: 0.5
+  maxYawSpeedDegPerSec: 360

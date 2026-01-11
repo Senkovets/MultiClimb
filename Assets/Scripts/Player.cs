@@ -72,6 +72,11 @@ public class Player : NetworkBehaviour
     private float _yawVelocity = 0f;
     private Vector3 _moveDirection;
 
+    private float _currentYaw;
+    private bool _yawInitialized;
+    const float deadZoneSqr = 0.04f; // ~0.2м
+
+
     public override void Spawned()
     {
         _health = GetComponent<NetworkHealth>();
@@ -165,15 +170,40 @@ public class Player : NetworkBehaviour
         if (!GetInput(out NetInput input))
             return;
 
+        // --------------------
+        // LOOK / YAW STABILIZER
+        // --------------------
         Vector3 aim = input.AimDirection3D;
         aim.y = 0f;
 
+        // Если aim невалидный — не трогаем yaw (но продолжаем остальную логику)
         if (aim.sqrMagnitude > 0.0001f)
         {
-            float yaw = Mathf.Atan2(aim.x, aim.z) * Mathf.Rad2Deg;
-            kcc.SetLookRotation(0f, yaw);
+            float targetYaw = Mathf.Atan2(aim.x, aim.z) * Mathf.Rad2Deg;
+
+            // Инициализируем yaw один раз (чтобы не было принудительного 0°)
+            if (!_yawInitialized)
+            {
+                _currentYaw = targetYaw;
+                _yawInitialized = true;
+            }
+
+            // Dead-zone: цель слишком близко → держим текущий yaw
+            if (aim.sqrMagnitude >= deadZoneSqr)
+            {
+                // Ограничение скорости поворота
+                float maxYawSpeed = 900f; // deg/sec
+                float maxStep = maxYawSpeed * Runner.DeltaTime;
+
+                _currentYaw = Mathf.MoveTowardsAngle(_currentYaw, targetYaw, maxStep);
+            }
+
+            kcc.SetLookRotation(0f, _currentYaw);
         }
 
+        // --------------------
+        // REST OF YOUR LOGIC
+        // --------------------
         SelectedAbility = input.AbilityMode;
         CheckGlide(input);
         CheckJump(input);
@@ -188,6 +218,7 @@ public class Player : NetworkBehaviour
         PreviousButtons = input.Buttons;
         baseLookRotation = kcc.GetLookRotation();
     }
+
 
 
     public override void Render()
