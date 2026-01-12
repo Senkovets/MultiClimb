@@ -1,81 +1,210 @@
+п»їusing System.Collections;
 using UnityEngine;
-using System.Collections;
 
 public class Grenade : MonoBehaviour
 {
     [Header("Throw Settings")]
     public float throwForce = 10f;
-    public LineRenderer lineRenderer;
+    public float verticalSpeed = 5f;
+    public LineRenderer trajectoryRenderer;
     public int pointsCount = 30;
     public float timeStep = 0.1f;
 
     [Header("Explosion Settings")]
-    public float explosionDelay = 3f;
+    public float explosionDelay = 3f; // Р·Р°РґРµСЂР¶РєР° РїРѕСЃР»Рµ РїР°РґРµРЅРёСЏ
     public float explosionRadius = 5f;
+    public int damage = 50;
+    public LayerMask damageLayers;
+
+    [Header("Effects")]
+    public GameObject explosionEffect;
+    public AudioClip explosionSound;
+    private AudioSource audioSource;
+
+    public LineRenderer radiusRenderer;
+    public Material fillMaterial;
+    public Material outlineMaterial;
 
     private Rigidbody rb;
+    private GameObject fillObj;
+    private bool hasLanded = false;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        audioSource = GetComponent<AudioSource>();
     }
 
-    // Метод броска гранаты в сторону курсора
+    // рџ”№ Р Р°СЃС‡С‘С‚ СЃРєРѕСЂРѕСЃС‚Рё Р±СЂРѕСЃРєР°
+    private Vector3 CalculateVelocity(Vector3 start, Vector3 target, float verticleSpeed)
+    {
+        float g = Physics.gravity.magnitude;
+        float t = verticleSpeed / g + Mathf.Sqrt(2f * Mathf.Abs((verticleSpeed * verticleSpeed * 0.5f / g) + start.y - target.y) / g);
+        Vector3 flatDir = (target - start);
+        flatDir.y = 0f;
+        float distance = flatDir.magnitude;
+        Vector3 dir = flatDir.normalized;
+        float d = distance / t;
+        return dir * d + Vector3.up * verticleSpeed;
+    }
+
     public void ThrowTowardsCursor()
     {
-        // Луч от камеры через курсор
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-        // Проверяем пересечение с землёй/коллайдером
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
-            Vector3 targetPos = hit.point; // точка на поверхности
-            Vector3 direction = (targetPos - transform.position).normalized;
+            Vector3 targetPos = hit.point;
+            Vector3 velocity = CalculateVelocity(transform.position, targetPos, verticalSpeed);
 
-            rb.AddForce(direction * throwForce, ForceMode.Impulse);
+            rb.velocity = velocity;
 
-            DrawTrajectory(transform.position, direction * throwForce);
-
-            StartCoroutine(Explode());
+            ClearVisuals();
+            // вќЊ РІР·СЂС‹РІ РЅРµ Р·Р°РїСѓСЃРєР°РµРј СЃСЂР°Р·Сѓ, Р¶РґС‘Рј РїР°РґРµРЅРёСЏ
         }
     }
 
-
-    // Отрисовка траектории
-    void DrawTrajectory(Vector3 startPos, Vector3 startVelocity)
+    // рџ”№ РўСЂР°РµРєС‚РѕСЂРёСЏ
+    public void DrawTrajectory(Vector3 startPos, Vector3 startVelocity)
     {
-        if (lineRenderer == null) return;
+        if (trajectoryRenderer == null) return;
 
-        lineRenderer.positionCount = pointsCount;
+        trajectoryRenderer.positionCount = pointsCount;
         for (int i = 0; i < pointsCount; i++)
         {
             float t = i * timeStep;
             Vector3 pos = startPos + startVelocity * t + 0.5f * Physics.gravity * t * t;
-            lineRenderer.SetPosition(i, pos);
+            trajectoryRenderer.SetPosition(i, pos);
         }
     }
 
-    // Визуализация радиуса взрыва в редакторе
-    void OnDrawGizmosSelected()
+    // рџ”№ Р Р°РґРёСѓСЃ РїСЂРё РїСЂРёР·РµРјР»РµРЅРёРё
+    public void ShowExplosionRadiusAtLanding(Vector3 startPos, Vector3 startVelocity)
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, explosionRadius);
-    }
+        if (radiusRenderer == null) return;
 
-    // Механика взрыва
-    IEnumerator Explode()
-    {
-        yield return new WaitForSeconds(explosionDelay);
+        bool foundLanding = false;
+        Vector3 landingPoint = startPos;
 
-        Collider[] colliders = Physics.OverlapSphere(transform.position, explosionRadius);
-        foreach (Collider col in colliders)
+        for (float t = 0; t < 30f; t += timeStep)
         {
-            if (col.GetComponent<Player>() != null)
+            Vector3 pos = startPos + startVelocity * t + 0.5f * Physics.gravity * t * t;
+            if (Physics.Raycast(pos, Vector3.down, out RaycastHit hit, 1f))
             {
-                Debug.Log("Игрок подорвался!");
+                landingPoint = hit.point;
+                foundLanding = true;
+                break;
             }
         }
 
+        if (!foundLanding)
+        {
+            radiusRenderer.positionCount = 0;
+            return;
+        }
+
+        DrawCircle(landingPoint);
+    }
+
+    private void ShowExplosionRadiusAtExplosion()
+    {
+        DrawCircle(transform.position);
+    }
+
+    // рџ”№ РћР±С‰Р°СЏ С„СѓРЅРєС†РёСЏ СЂРёСЃРѕРІР°РЅРёСЏ РєСЂСѓРіР°
+    private void DrawCircle(Vector3 center)
+    {
+        int segments = 50;
+
+        Mesh mesh = new Mesh();
+        Vector3[] vertices = new Vector3[segments + 1];
+        int[] triangles = new int[segments * 3];
+
+        vertices[0] = Vector3.zero;
+        for (int i = 1; i <= segments; i++)
+        {
+            float angle = (float)i / segments * Mathf.PI * 2f;
+            vertices[i] = new Vector3(Mathf.Cos(angle) * explosionRadius, 0, Mathf.Sin(angle) * explosionRadius);
+        }
+
+        for (int i = 0; i < segments; i++)
+        {
+            triangles[i * 3] = 0;
+            triangles[i * 3 + 1] = i + 1;
+            triangles[i * 3 + 2] = (i + 2 > segments) ? 1 : i + 2;
+        }
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+
+        if (fillObj == null)
+        {
+            fillObj = new GameObject("ExplosionFill");
+            fillObj.AddComponent<MeshFilter>();
+            fillObj.AddComponent<MeshRenderer>();
+        }
+
+        MeshFilter mf = fillObj.GetComponent<MeshFilter>();
+        MeshRenderer mr = fillObj.GetComponent<MeshRenderer>();
+        mf.mesh = mesh;
+        mr.material = fillMaterial;
+
+        fillObj.transform.position = center + Vector3.up * 0.01f;
+        fillObj.transform.rotation = Quaternion.identity;
+
+        if (radiusRenderer != null)
+        {
+            radiusRenderer.positionCount = segments;
+            for (int i = 0; i < segments; i++)
+            {
+                float angle = (float)i / segments * Mathf.PI * 2f;
+                Vector3 pos = center + new Vector3(Mathf.Cos(angle) * explosionRadius, 0, Mathf.Sin(angle) * explosionRadius);
+                radiusRenderer.SetPosition(i, pos);
+            }
+        }
+    }
+
+    public void ClearVisuals()
+    {
+        if (trajectoryRenderer != null) trajectoryRenderer.positionCount = 0;
+        if (radiusRenderer != null) radiusRenderer.positionCount = 0;
+        if (fillObj != null) Destroy(fillObj);
+    }
+
+    // рџ”№ РЎСЂР°Р±Р°С‚С‹РІР°РµС‚ РїСЂРё РїР°РґРµРЅРёРё РіСЂР°РЅР°С‚С‹ вЂ” Р·Р°РїСѓСЃРєР°РµРј С‚Р°Р№РјРµСЂ РІР·СЂС‹РІР°
+    void OnCollisionEnter(Collision collision)
+    {
+        if (!hasLanded)
+        {
+            hasLanded = true;
+            StartCoroutine(Explode());
+        }
+    }
+
+    IEnumerator Explode()
+    {
+        // Р¶РґС‘Рј Р·Р°РґРµСЂР¶РєСѓ РїРѕСЃР»Рµ РїР°РґРµРЅРёСЏ РјРёРЅСѓСЃ 2 СЃРµРєСѓРЅРґС‹
+        float soundDelay = Mathf.Max(0f, explosionDelay - 1.6f);
+        yield return new WaitForSeconds(soundDelay);
+
+        // Р·РІСѓРє РїСЂРѕРёРіСЂС‹РІР°РµС‚СЃСЏ Р·Р° 2 СЃРµРєСѓРЅРґС‹ РґРѕ РІР·СЂС‹РІР°
+        if (audioSource != null && explosionSound != null)
+        {
+            audioSource.PlayOneShot(explosionSound);
+        }
+
+        // Р¶РґС‘Рј РѕСЃС‚Р°РІС€РµРµСЃСЏ РІСЂРµРјСЏ РґРѕ РІР·СЂС‹РІР°
+        yield return new WaitForSeconds(explosionDelay - soundDelay);
+
+        ShowExplosionRadiusAtExplosion();
+
+        if (explosionEffect != null)
+        {
+            GameObject effect = Instantiate(explosionEffect, transform.position, Quaternion.identity);
+            Destroy(effect, 3f);
+        }
+
+        yield return new WaitForSeconds(0.5f);
+        ClearVisuals();
         Destroy(gameObject);
     }
 }

@@ -3,7 +3,12 @@ guid: 02a9af04ef5b6d84bae6c63c767bc104
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - trajectoryRenderer: {fileID: 251504405629164484, guid: d6e37f1cd9945304db2eb49b8849488c,
+      type: 3}
+  - explosionEffect: {instanceID: 0}
+  - explosionSound: {instanceID: 0}
+  - radiusRenderer: {instanceID: 0}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
