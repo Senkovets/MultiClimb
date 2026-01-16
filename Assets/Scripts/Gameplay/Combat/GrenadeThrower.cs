@@ -30,11 +30,11 @@ public class GrenadeThrower : MonoBehaviour
             {
                 Vector3 targetPos = hit.point;
                 Vector3 direction = (targetPos - spawnPoint.position).normalized;
-                Vector3 velocity = direction * previewGrenade.throwForce;
+             //   Vector3 velocity = direction * previewGrenade.throwForce;
 
                 // рисуем траекторию и радиус приземления
-                previewGrenade.DrawTrajectory(spawnPoint.position, velocity);
-                previewGrenade.ShowExplosionRadiusAtLanding(spawnPoint.position, velocity);
+              //  previewGrenade.DrawTrajectory(spawnPoint.position, velocity);
+//previewGrenade.ShowExplosionRadiusAtLanding(spawnPoint.position, velocity);
             }
         }
 
@@ -44,14 +44,14 @@ public class GrenadeThrower : MonoBehaviour
             if (previewGrenade != null)
             {
                 // очищаем визуализацию и удаляем фантом
-                previewGrenade.ClearVisuals();
+               // previewGrenade.ClearVisuals();
                 Destroy(previewGrenade.gameObject);
                 previewGrenade = null;
             }
 
             // создаём настоящую гранату
             GameObject currentGrenade = Instantiate(grenadePrefab, spawnPoint.position, Quaternion.identity);
-            currentGrenade.GetComponent<Grenade>().ThrowTowardsCursor();
+            //currentGrenade.GetComponent<Grenade>().ThrowTowardsCursor();
         }
     }
 }
