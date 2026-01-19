@@ -205,8 +205,8 @@ public class Player : NetworkBehaviour
         // REST OF YOUR LOGIC
         // --------------------
         SelectedAbility = input.AbilityMode;
-        CheckGlide(input);
-        CheckJump(input);
+       // CheckGlide(input);
+       // CheckJump(input);
 
         UpdateCamTarget();
 
