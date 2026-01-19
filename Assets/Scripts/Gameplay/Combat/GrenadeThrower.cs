@@ -6,7 +6,7 @@ public class GrenadeThrower : MonoBehaviour
     public GameObject grenadePrefab;   // префаб гранаты
     public Transform spawnPoint;       // точка появления гранаты
 
-    private Grenade previewGrenade;    // временная граната для визуализации
+    private GrenadeNetwork previewGrenade;    // временная граната для визуализации
 
     private void Update()
     {
@@ -17,7 +17,7 @@ public class GrenadeThrower : MonoBehaviour
             {
                 // создаём "фантомную" гранату для расчётов
                 GameObject g = Instantiate(grenadePrefab, spawnPoint.position, Quaternion.identity);
-                previewGrenade = g.GetComponent<Grenade>();
+                previewGrenade = g.GetComponent<GrenadeNetwork>();
 
                 // отключаем физику, чтобы фантом не падал
                 Rigidbody rb = g.GetComponent<Rigidbody>();

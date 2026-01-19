@@ -26,7 +26,7 @@ public sealed class ThrowableController : NetworkBehaviour
 
     [Header("Input")]
     [Tooltip("Какая кнопка включает режим прицеливания способности.")]
-    [SerializeField] private InputButton prepareButton = InputButton.UseAbility;
+    [SerializeField] private InputButton prepareButton = InputButton.Reload;
 
     [Header("Debug")]
     [SerializeField] private bool logState;

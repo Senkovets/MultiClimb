@@ -1796,8 +1796,8 @@ MonoBehaviour:
   config: {fileID: 11400000, guid: e4f78c24ea3207f4db7b2b283dc40530, type: 2}
   throwOrigin: {fileID: 148249261568832506}
   projectilePrefab:
-    RawGuidValue: 24647a364bdf4f941b06eb531ead4263
-  prepareButton: 1
+    RawGuidValue: caf30e7e000ac43449e29d8dd7a454b5
+  prepareButton: 5
   logState: 0
   _State: 0
   _CurrentAimPoint: {x: 0, y: 0, z: 0}

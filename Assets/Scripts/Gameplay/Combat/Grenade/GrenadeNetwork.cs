@@ -1,8 +1,8 @@
 using Fusion;
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody))]
-public sealed class Grenade : NetworkBehaviour, IThrowableProjectile
+
+public class GrenadeNetwork : NetworkBehaviour, IThrowableProjectile
 {
     [Header("Explosion")]
     [SerializeField] private float explodeDelay = 2.5f;
