@@ -64,7 +64,7 @@ GameObject:
   - component: {fileID: 4415831964059997}
   - component: {fileID: 33889296065564331}
   - component: {fileID: 23345416317291922}
-  - component: {fileID: -7638796021682347375}
+  - component: {fileID: -3064410805860048698}
   m_Layer: 0
   m_Name: Pfb_Wall_005
   m_TagString: Untagged
@@ -82,7 +82,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.5, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4360600362048462}
@@ -139,7 +139,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &-7638796021682347375
+--- !u!64 &-3064410805860048698
 MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -155,7 +155,7 @@ MeshCollider:
     m_Bits: 0
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
-  m_ProvidesContacts: 1
+  m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 5
   m_Convex: 0
