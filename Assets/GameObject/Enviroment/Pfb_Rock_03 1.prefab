@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4928853088620934}
   - component: {fileID: 33775041522772145}
   - component: {fileID: 23552443689476201}
-  - component: {fileID: 4189242812632110085}
+  - component: {fileID: 4555562967869675932}
   m_Layer: 0
   m_Name: Pfb_Rock_03 1
   m_TagString: Untagged
@@ -85,7 +85,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &4189242812632110085
+--- !u!64 &4555562967869675932
 MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -101,7 +101,7 @@ MeshCollider:
     m_Bits: 0
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
-  m_ProvidesContacts: 0
+  m_ProvidesContacts: 1
   m_Enabled: 1
   serializedVersion: 5
   m_Convex: 0
