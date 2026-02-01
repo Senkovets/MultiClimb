@@ -1,4 +1,5 @@
 using Fusion;
+using MultiClimb.Match;
 using UnityEngine;
 
 public class NetworkHealth : NetworkBehaviour
@@ -63,8 +64,17 @@ public class NetworkHealth : NetworkBehaviour
         if (attacker != null && attacker != owner)
             attacker.AddKill();
 
-        if (owner != null)
-            owner.Respawn();
+        PlayerRef killerRef = attacker != null
+            ? attacker.Object.InputAuthority
+            : PlayerRef.None;
+
+        MatchEventBus.Instance?.Raise(
+            new PlayerDiedEvent(
+                Object.InputAuthority,   // victim
+                killerRef,               // killer
+                Runner.Tick
+            )
+        );
     }
 
     public void ResetHealth()

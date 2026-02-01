@@ -1,30 +1,19 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Fusion;
+using MultiClimb.Match;
 
 public class UIManager : MonoBehaviour
 {
-    public static UIManager Singleton
-    {
-        get => _singleton;
-        set
-        {
-            if (value == null)
-                _singleton = null;
-            else if (_singleton == null)
-                _singleton = value;
-            else if (_singleton != value)
-            {
-                Destroy(value);
-                Debug.LogError($"There should only ever be one instance of {nameof(UIManager)}!");
-            }
-        }
-    }
-    private static UIManager _singleton;
+    public static UIManager Singleton { get; private set; }
 
+    [Header("Refs")]
+    [SerializeField] private PlayerRegistry playerRegistry;
+
+    [Header("UI")]
     [SerializeField] private TextMeshProUGUI gameStateText;
     [SerializeField] private TextMeshProUGUI instructionText;
     [SerializeField] private Slider breakCD;
@@ -43,6 +32,7 @@ public class UIManager : MonoBehaviour
 
     private void Awake()
     {
+        if (Singleton != null && Singleton != this) { Destroy(gameObject); return; }
         Singleton = this;
 
         breakCD.value = 0f;
@@ -55,10 +45,30 @@ public class UIManager : MonoBehaviour
         SelectAbility(AbilityMode.BreakBlock);
     }
 
+    public void Init()
+    {
+        if (MatchEventBus.Instance != null)
+        {
+            MatchEventBus.Instance.MatchStateChanged += OnMatchStateChanged;
+            MatchEventBus.Instance.LeaderboardChanged += OnLeaderboardChanged;
+            Debug.LogError("OnEnableRaiseRegistryReady");
+            MatchEventBus.Instance.RegistryReady += OnRegistryReady;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (MatchEventBus.Instance != null)
+        {
+            MatchEventBus.Instance.MatchStateChanged -= OnMatchStateChanged;
+            MatchEventBus.Instance.LeaderboardChanged -= OnLeaderboardChanged;
+            MatchEventBus.Instance.RegistryReady -= OnRegistryReady;
+        }
+    }
+
     private void Update()
     {
-        if (LocalPlayer == null)
-            return;
+        if (LocalPlayer == null) return;
 
         breakCD.value = LocalPlayer.BreakCDFactor;
         cageCD.value = LocalPlayer.CageCDFactor;
@@ -70,10 +80,19 @@ public class UIManager : MonoBehaviour
         glideCD.value = LocalPlayer.IsGliding ? LocalPlayer.GlideCharge : LocalPlayer.GlideCDFactor;
     }
 
-    private void OnDestroy()
+    private void OnMatchStateChanged(MatchStateChangedEvent e)
     {
-        if (Singleton == this)
-            Singleton = null;
+        Player winner = null;
+
+        if (e.Winner != PlayerRef.None && playerRegistry != null)
+            playerRegistry.TryGet(e.Winner, out winner);
+
+        SetWaitUI(e.State, winner);
+    }
+
+    private void OnLeaderboardChanged(LeaderboardChangedEvent e)
+    {
+        UpdateLeaderboard(e.Entries);
     }
 
     public void DidSetReady()
@@ -93,7 +112,7 @@ public class UIManager : MonoBehaviour
             else
             {
                 gameStateText.text = $"{winner.Name} Wins";
-                instructionText.text = "Press R when you're ready to play again!";
+                instructionText.text = "Next round starting...";
             }
         }
 
@@ -107,20 +126,18 @@ public class UIManager : MonoBehaviour
         cageSelected.enabled = mode == AbilityMode.Cage;
         shoveSelected.enabled = mode == AbilityMode.Shove;
     }
-    public void UpdateLeaderboard(KeyValuePair<Fusion.PlayerRef, Player>[] players)
+
+    public void UpdateLeaderboard(KeyValuePair<PlayerRef, Player>[] players)
     {
         for (int i = 0; i < leaderboardItems.Length; i++)
         {
-            LeaderboardItem item = leaderboardItems[i];
+            var item = leaderboardItems[i];
 
             if (i < players.Length)
             {
-                Player player = players[i].Value;
-
-                item.nameText.text = player.Name;
-
-                // пример формата: "Kills: 5 | Score: 120"
-                item.heightText.text = $"Kills: {player.Kills} | Score: {player.Score}";
+                var p = players[i].Value;
+                item.nameText.text = p.Name;
+                item.heightText.text = $"Kills: {p.Kills} | Score: {p.Score}";
             }
             else
             {
@@ -130,6 +147,11 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    private void OnRegistryReady(PlayerRegistry registry)
+    {
+        Debug.LogError("UIManagerRaiseRegistryReady");
+        playerRegistry = registry;
+    }
 
     [Serializable]
     private struct LeaderboardItem

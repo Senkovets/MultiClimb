@@ -13,7 +13,10 @@ public enum AbilityMode : byte
 
 public class Player : NetworkBehaviour
 {
-    private NetworkHealth _health;
+    public NetworkHealth Health;
+    public bool IsReady;
+    [Networked] public int Kills { get; private set; }
+    [Networked] public int Score { get; private set; }
 
     [SerializeField] private MeshRenderer[] modelParts;
     [SerializeField] private LayerMask lagCompLayers;
@@ -44,8 +47,7 @@ public class Player : NetworkBehaviour
     public float GrappleCDFactor => (GrappleCD.RemainingTime(Runner) ?? 0f) / grappleCD;
     public float GlideCDFactor => (GlideCD.RemainingTime(Runner) ?? 0f) / glideCD;
     public float DoubleJumpCDFactor => (DoubleJumpCD.RemainingTime(Runner) ?? 0f) / doubleJumpCD;
-    public double Score => Math.Round(transform.position.y, 1);
-    public bool IsReady; // Server is the only one who cares about this
+    
     private bool CanGlide => !kcc.Data.IsGrounded && GlideCharge > 0f && !IsCaged;
     public AbilityMode SelectedAbility { get; private set; }
 
@@ -60,7 +62,7 @@ public class Player : NetworkBehaviour
     [Networked] private TickTimer GlideCD { get; set; }
     [Networked] private TickTimer DoubleJumpCD { get; set; }
     [Networked] private NetworkButtons PreviousButtons { get; set; }
-    [Networked] public int Kills { get; private set; }
+    
 
     [Networked, OnChangedRender(nameof(Jumped))] private int JumpSync { get; set; }
     [Networked, OnChangedRender(nameof(Shoved))] private int ShoveSync { get; set; }
@@ -79,10 +81,10 @@ public class Player : NetworkBehaviour
 
     public override void Spawned()
     {
-        _health = GetComponent<NetworkHealth>();
+        Health = GetComponent<NetworkHealth>();
 
         var bar = GetComponentInChildren<HealthBar>(true);
-        bar.Init(_health);
+        bar.Init(Health);
 
         glideDrain = 1f / (maxGlideTime * Runner.TickRate);
         GlideCharge = 1f;
@@ -120,21 +122,6 @@ public class Player : NetworkBehaviour
         if (HasStateAuthority)
             Kills++;
     }
-
-
-    public void Respawn()
-    {
-        if (!HasStateAuthority)
-            return;
-
-        _health.ResetHealth();
-
-        GameLogic.Singleton.GetSpawnPoint(out Vector3 pos, out Quaternion rot);
-
-        Teleport(pos, rot);
-    }
-
-
 
 
     private void UpdateCursorRotation()
@@ -448,4 +435,14 @@ public class Player : NetworkBehaviour
     {
         Name = name;
     }
+
+    public void ResetRoundStats()
+    {
+        if (!HasStateAuthority) return;
+
+        Kills = 0;
+        Score = 0;
+        IsReady = false;
+    }
+
 }
