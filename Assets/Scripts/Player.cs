@@ -11,29 +11,35 @@ public enum AbilityMode : byte
 
 public class Player : NetworkBehaviour
 {
+    [Networked] public string Name { get; private set; }
+
     public NetworkHealth Health;
     public bool IsReady;
     public bool IsDead => Health != null && Health.CurrentHealth <= 0;
+    [Networked, OnChangedRender(nameof(OnDeathStateChanged))] public NetworkBool IsVisible { get; set; } = true;
 
-    [Networked, OnChangedRender(nameof(OnDeathStateChanged))]
-    public NetworkBool IsVisible { get; set; } = true;
-
-    [SerializeField] private MeshRenderer[] modelParts;
-
-
+    [SerializeField] private Renderer[] modelParts;
+    [SerializeField] private Canvas[] сanvas;
     [Networked] public int Kills { get; private set; }
     [Networked] public int Score { get; private set; }
 
-   
+    private InputManager inputManager;
+    private Vector3 _moveDirection;
+
+    const float deadZoneSqr = 0.04f; // ~0.2м
+
+    //-----------------------------------------------
+
     [SerializeField] private LayerMask lagCompLayers;
     [SerializeField] private KCC kcc;
-    [SerializeField] private KCCProcessor glideProcessor;
     [SerializeField] private Transform camTarget;
+    [SerializeField] private float maxPitch = 85f;
+    [SerializeField] private float lookSensitivity = 0.15f;
+
+    [SerializeField] private KCCProcessor glideProcessor;
     [SerializeField] private AudioSource source;
     [SerializeField] private AudioClip shoveSound;
     [SerializeField] private Cage cagePrefab;
-    [SerializeField] private float maxPitch = 85f;
-    [SerializeField] private float lookSensitivity = 0.15f;
     [SerializeField] private Vector3 jumpImpulse = new(0f, 10f, 0f);
     [SerializeField] private float doubleJumpMultiplier = 0.75f;
     [SerializeField] private float breakBlockCD = 1.25f;
@@ -57,7 +63,7 @@ public class Player : NetworkBehaviour
     private bool CanGlide => !kcc.Data.IsGrounded && GlideCharge > 0f && !IsCaged;
     public AbilityMode SelectedAbility { get; private set; }
 
-    [Networked] public string Name { get; private set; }
+ 
     [Networked] public float GlideCharge { get; private set; }
     [Networked] public bool IsGliding { get; private set; }
     [Networked] public bool IsCaged { get; set; }
@@ -68,59 +74,20 @@ public class Player : NetworkBehaviour
     [Networked] private TickTimer GlideCD { get; set; }
     [Networked] private TickTimer DoubleJumpCD { get; set; }
     [Networked] private NetworkButtons PreviousButtons { get; set; }
-    
 
     [Networked, OnChangedRender(nameof(Jumped))] private int JumpSync { get; set; }
     [Networked, OnChangedRender(nameof(Shoved))] private int ShoveSync { get; set; }
 
-    private InputManager inputManager;
     private Vector2 baseLookRotation;
     private float glideDrain;
 
     private float _yawVelocity = 0f;
-    private Vector3 _moveDirection;
 
     private float _currentYaw;
     private bool _yawInitialized;
-    const float deadZoneSqr = 0.04f; // ~0.2м
 
-    void OnDeathStateChanged()
-    {
-        // 1. Визуал
-        if (modelParts != null)
-        {
-            foreach (var part in modelParts)
-                if (part != null) part.enabled = IsVisible;
-        }
+    //-----------------------------------------------------------------------------------
 
-        // 2. Слой (самый надежный способ для Raycast и физики)
-        int targetLayer = IsVisible ? LayerMask.NameToLayer("Default") : LayerMask.NameToLayer("Ignore Raycast");
-        gameObject.layer = targetLayer;
-        SetLayerRecursively(transform, targetLayer);
-
-        // 3. Отключаем стандартный коллайдер Unity (чтобы игроки не сталкивались)
-        var mainCollider = GetComponent<CapsuleCollider>();
-        if (mainCollider != null) mainCollider.enabled = IsVisible;
-
-        // 4. Отключаем систему хитбоксов Fusion
-        var hitboxRoot = GetComponent<HitboxRoot>();
-        if (hitboxRoot != null) hitboxRoot.enabled = IsVisible;
-
-        // 5. Полностью деактивируем KCC
-        if (kcc != null)
-        {
-            if (IsVisible) kcc.SetActive(true);
-            else kcc.SetActive(false);
-        }
-    }
-    private void SetLayerRecursively(Transform parent, int layer)
-    {
-        parent.gameObject.layer = layer;
-        foreach (Transform child in parent)
-        {
-            SetLayerRecursively(child, layer);
-        }
-    }
 
     public override void Spawned()
     {
@@ -142,47 +109,6 @@ public class Player : NetworkBehaviour
             UIManager.Singleton.LocalPlayer = this;
         }
     }
-
-    private Vector3 GetMouseWorldPosition()
-    {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        Plane groundPlane = new Plane(Vector3.up, transform.position.y);
-
-        float distance;
-        if (groundPlane.Raycast(ray, out distance))
-        {
-            return ray.GetPoint(distance);
-        }
-
-        return ray.GetPoint(100f);
-    }
-
-    public void AddKill()
-    {
-        if (HasStateAuthority)
-            Kills++;
-    }
-
-
-/*    private void UpdateCursorRotation()
-    {
-        if (!HasInputAuthority) return;
-
-        Vector3 mouseWorldPos = GetMouseWorldPosition();
-        Vector3 direction = mouseWorldPos - transform.position;
-        direction.y = 0f;
-
-        if (direction != Vector3.zero)
-        {
-            float targetYaw = Vector3.SignedAngle(Vector3.forward, direction, Vector3.up);
-            float currentYaw = kcc.GetLookRotation().y;
-
-            float deltaYaw = Mathf.SmoothDampAngle(currentYaw, targetYaw, ref _yawVelocity, 0.01f);
-            kcc.SetLookRotation(kcc.GetLookRotation().x, deltaYaw);
-        }
-    }*/
-
-
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
         if (HasInputAuthority)
@@ -237,8 +163,8 @@ public class Player : NetworkBehaviour
         // REST OF YOUR LOGIC
         // --------------------
         SelectedAbility = input.AbilityMode;
-       // CheckGlide(input);
-       // CheckJump(input);
+        // CheckGlide(input);
+        // CheckJump(input);
 
         UpdateCamTarget();
 
@@ -251,17 +177,148 @@ public class Player : NetworkBehaviour
         baseLookRotation = kcc.GetLookRotation();
     }
 
-
-
     public override void Render()
     {
-        /* if (kcc.IsPredictingLookRotation)
-         {
-             Vector2 predictedLookRotation = baseLookRotation + inputManager.AccumulatedMouseDelta * lookSensitivity;
-             kcc.SetLookRotation(predictedLookRotation);
-         }*/
-
         UpdateCamTarget();
+    }
+
+    public void AddKill()
+    {
+        if (HasStateAuthority)
+            Kills++;
+    }
+    public void Teleport(Vector3 position, Quaternion rotation)
+    {
+        kcc.SetPosition(position);
+        kcc.SetLookRotation(rotation);
+    }
+
+    public void ResetRoundStats()
+    {
+        if (!HasStateAuthority) return;
+
+        Kills = 0;
+        Score = 0;
+        IsReady = false;
+    }
+
+    private void OnDeathStateChanged()
+    {
+        // Определяем целевой слой для физики Unity
+        int targetLayer = IsVisible ? LayerMask.NameToLayer("Player") : LayerMask.NameToLayer("Ignore Raycast");
+
+        // 1. Стандартная логика для Unity (визуал и обычные лучи)
+        SetLayerRecursively(transform, targetLayer);
+
+        if (modelParts != null)
+        {
+            foreach (var part in modelParts)
+                if (part != null) part.enabled = IsVisible;
+        }
+
+        if (сanvas != null)
+        {
+            foreach (var can in сanvas)
+                if (can != null) can.enabled = IsVisible;
+        }
+
+        // 2. Сетевые хитбоксы (Lag Compensation)
+        var hbRoot = GetComponent<HitboxRoot>();
+        if (hbRoot != null) hbRoot.enabled = IsVisible;
+
+        // 3. Управление KCC (Физика перемещения)
+        if (kcc != null)
+        {
+            if (IsVisible)
+            {
+                kcc.SetColliderLayer(LayerMask.NameToLayer("Player"));
+                kcc.SetCollisionLayerMask(LayerMask.GetMask("Default", "Player", "Ground"));
+            }
+            else
+            {
+                kcc.SetColliderLayer(LayerMask.NameToLayer("Ignore Raycast"));
+                kcc.SetCollisionLayerMask(LayerMask.GetMask("Ground"));
+            }
+        }
+    }
+
+    private void SetLayerRecursively(Transform parent, int layer)
+    {
+        parent.gameObject.layer = layer;
+        foreach (Transform child in parent)
+        {
+            SetLayerRecursively(child, layer);
+        }
+    }
+
+    private void SetInputDirection(NetInput input)
+    {
+        _moveDirection = new Vector3(input.Direction.x, 0f, input.Direction.y);
+
+        if (IsGliding)
+        {
+            GlideCharge = Mathf.Max(0f, GlideCharge - glideDrain);
+            kcc.SetInputDirection(kcc.Data.TransformDirection);
+        }
+        else
+        {
+            kcc.SetInputDirection(_moveDirection);
+        }
+    }
+
+    private void UpdateCamTarget()
+    {
+        camTarget.localRotation = Quaternion.Euler(
+            kcc.GetLookRotation().x,
+            kcc.GetLookRotation().y,
+            0f
+        );
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.InputAuthority | RpcTargets.StateAuthority)]
+    public void RPC_SetReady()
+    {
+        IsReady = true;
+        if (HasInputAuthority)
+            UIManager.Singleton.DidSetReady();
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_PlayerName(string name)
+    {
+        Name = name;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //-----------------------------------------------------------------------------------
+    private Vector3 GetMouseWorldPosition()
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        Plane groundPlane = new Plane(Vector3.up, transform.position.y);
+
+        float distance;
+        if (groundPlane.Raycast(ray, out distance))
+        {
+            return ray.GetPoint(distance);
+        }
+
+        return ray.GetPoint(100f);
     }
 
     private void CheckGlide(NetInput input)
@@ -291,45 +348,6 @@ public class Player : NetworkBehaviour
         }
     }
 
-    /*   private void SetInputDirection(NetInput input)
-       {
-           Vector3 worldDirection;
-           if (IsGliding)
-           {
-               GlideCharge = Mathf.Max(0f, GlideCharge - glideDrain);
-               worldDirection = kcc.Data.TransformDirection;
-           }
-           else
-               worldDirection = kcc.FixedData.TransformRotation * input.Direction.X0Y();
-
-           kcc.SetInputDirection(worldDirection);
-       }*/
-
-    private void SetInputDirection(NetInput input)
-    {
-        _moveDirection = new Vector3(input.Direction.x, 0f, input.Direction.y);
-
-        if (IsGliding)
-        {
-            GlideCharge = Mathf.Max(0f, GlideCharge - glideDrain);
-            kcc.SetInputDirection(kcc.Data.TransformDirection);
-        }
-        else
-        {
-            // Òåïåðü äâèæåíèå ïðîèñõîäèò ïî ãëîáàëüíûì îñÿì
-            kcc.SetInputDirection(_moveDirection);
-        }
-    }
-
-    private void UpdateCamTarget()
-    {
-        // Îáíîâëÿåì öåëü êàìåðû ñ ó÷åòîì íîâîãî ïîâîðîòà
-        camTarget.localRotation = Quaternion.Euler(
-            kcc.GetLookRotation().x,
-            kcc.GetLookRotation().y,
-            0f
-        );
-    }
 
 
     private void CheckAbilities(NetInput input, Vector3 lookDirection)
@@ -351,20 +369,6 @@ public class Player : NetworkBehaviour
             default:
                 break;
         }
-    }
-
-    [Rpc(RpcSources.InputAuthority, RpcTargets.InputAuthority | RpcTargets.StateAuthority)]
-    public void RPC_SetReady()
-    {
-        IsReady = true;
-        if (HasInputAuthority)
-            UIManager.Singleton.DidSetReady();
-    }
-
-    public void Teleport(Vector3 position, Quaternion rotation)
-    {
-        kcc.SetPosition(position);
-        kcc.SetLookRotation(rotation);
     }
 
     public void ResetCooldowns()
@@ -475,19 +479,6 @@ public class Player : NetworkBehaviour
         source.PlayOneShot(shoveSound);
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_PlayerName(string name)
-    {
-        Name = name;
-    }
-
-    public void ResetRoundStats()
-    {
-        if (!HasStateAuthority) return;
-
-        Kills = 0;
-        Score = 0;
-        IsReady = false;
-    }
+   
 
 }

@@ -289,7 +289,7 @@ public class GunController : NetworkBehaviour
             Object.InputAuthority,
             out LagCompensatedHit hit,
             hitLayers,
-            HitOptions.IncludePhysX | HitOptions.IgnoreInputAuthority
+            HitOptions.None | HitOptions.IgnoreInputAuthority
         );
 
         Vector3 endPoint;
@@ -308,6 +308,16 @@ public class GunController : NetworkBehaviour
             else if (hit.GameObject != null)
             {
                 targetObj = hit.GameObject.GetComponentInParent<NetworkObject>();
+            }
+
+            if (targetObj != null && targetObj.TryGetComponent(out Player player))
+            {
+                if (player.IsDead) // Если попали в того, кто уже мертв
+                {
+                    // ПЕРЕПИСЫВАЕМ didHit в false, чтобы пуля летела дальше
+                    didHit = false;
+                    endPoint = origin + dir * maxDistance;
+                }
             }
         }
         else

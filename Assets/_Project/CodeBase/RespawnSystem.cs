@@ -31,13 +31,31 @@ public sealed class RespawnSystem : NetworkBehaviour
         _pending.Clear();
     }
 
+    // В RespawnSystem.cs (только на State Authority)
     private void OnPlayerDied(PlayerDiedEvent e)
     {
-        // Респавн делает только authority
         if (!HasStateAuthority) return;
 
-        // Если уже стоит таймер — перезапишем (на всякий)
+        if (registry.TryGet(e.Victim, out Player player))
+        {
+            // 1. Устанавливаем сетевое свойство в false
+            // Это автоматически вызовет OnDeathStateChanged у всех
+            player.IsVisible = false;
+        }
+
         _pending[e.Victim] = TickTimer.CreateFromSeconds(Runner, respawnDelaySeconds);
+    }
+
+    private void Respawn(PlayerRef victim)
+    {
+        if (!registry.TryGet(victim, out Player player)) return;
+
+        // При респавне возвращаем всё назад
+        player.Health.ResetHealth();
+        player.IsVisible = true; // Снова вызывается OnDeathStateChanged
+
+        spawner.GetRandomSpawn(out var pos, out var rot);
+        player.Teleport(pos, rot);
     }
 
     public override void FixedUpdateNetwork()
@@ -64,7 +82,7 @@ public sealed class RespawnSystem : NetworkBehaviour
         ListPool<PlayerRef>.Release(toRespawn);
     }
 
-    private void Respawn(PlayerRef victim)
+ /*   private void Respawn(PlayerRef victim)
     {
         if (registry == null || spawner == null) return;
 
@@ -76,7 +94,7 @@ public sealed class RespawnSystem : NetworkBehaviour
         player.Health.ResetHealth();  
         player.Teleport(pos, rot);
         player.IsVisible = true;
-    }
+    }*/
 
     private static class ListPool<T>
     {

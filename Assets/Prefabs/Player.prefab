@@ -1912,6 +1912,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcb9d6d5184a3ae4b87b744535bf511b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _Name: 
   Health: {fileID: 0}
   IsReady: 0
   _IsVisible:
@@ -1923,21 +1924,27 @@ MonoBehaviour:
   - {fileID: 8244469673601153147}
   - {fileID: 3208298448284846645}
   - {fileID: 8799478614307836382}
+  - {fileID: 8749461424908778980}
+  - {fileID: 5271234934346940701}
+  - {fileID: 3611541354335692725}
+  "\u0441anvas":
+  - {fileID: 2281014677623095076}
+  - {fileID: 6620185592206706922}
   _Kills: 0
   _Score: 0
   lagCompLayers:
     serializedVersion: 2
     m_Bits: 1
   kcc: {fileID: 4391075928499431294}
+  camTarget: {fileID: 7521976898276525714}
+  maxPitch: 85
+  lookSensitivity: 0.15
   glideProcessor: {fileID: 3540907148272033431, guid: 6dde4e95e9ae2d547971fdb72f979b45,
     type: 3}
-  camTarget: {fileID: 7521976898276525714}
   source: {fileID: 1299036719452211626}
   shoveSound: {fileID: 8300000, guid: e99afd01e3d183d42a4e2389b59c8e89, type: 3}
   cagePrefab: {fileID: 1853748144116134685, guid: b7f032a4b8c9da14e8c7969e119ac84d,
     type: 3}
-  maxPitch: 85
-  lookSensitivity: 0.15
   jumpImpulse: {x: 0, y: 10, z: 0}
   doubleJumpMultiplier: 0.75
   breakBlockCD: 1.25
@@ -1950,7 +1957,6 @@ MonoBehaviour:
   grappleStrength: 12
   maxGlideTime: 2
   <AbilityRange>k__BackingField: 25
-  _Name: 
   _GlideCharge: 0
   _IsGliding: 0
   _IsCaged: 0
@@ -2179,7 +2185,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9040168462585498880}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f4f7774e7c8c644c9d73c6c55f38bb1, type: 3}
   m_Name: 
