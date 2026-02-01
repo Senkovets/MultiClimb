@@ -31,7 +31,6 @@ namespace MultiClimb.Match
 
         public void RaiseRegistryReady(PlayerRegistry registry)
         {
-            Debug.LogError("RaiseRegistryReady");
             RegistryReady?.Invoke(registry);
         }
     }

@@ -64,6 +64,8 @@ public class NetworkHealth : NetworkBehaviour
         if (attacker != null && attacker != owner)
             attacker.AddKill();
 
+        owner.IsVisible = false;
+
         PlayerRef killerRef = attacker != null
             ? attacker.Object.InputAuthority
             : PlayerRef.None;

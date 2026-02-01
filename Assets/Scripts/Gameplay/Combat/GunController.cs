@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class GunController : NetworkBehaviour
 {
+    public Player Player;
+
     [Header("Fire")]
     public float fireRate = 0.1f;
     public FireMode fireMode = FireMode.Auto;
@@ -80,6 +82,10 @@ public class GunController : NetworkBehaviour
         if (!HasStateAuthority)
             return;
 
+        if (Player.IsDead)
+            return;
+        
+
         if (!GetInput(out NetInput input))
             return;
 
@@ -116,6 +122,9 @@ public class GunController : NetworkBehaviour
     {
         // Plan A: стрелок видит ТОЛЬКО локальный FX
         if (!HasInputAuthority)
+            return;
+
+        if (Player.IsDead)
             return;
 
         if (Runner == null || tracerPrefab == null || gunMuzzle == null)

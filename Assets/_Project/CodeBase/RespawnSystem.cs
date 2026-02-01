@@ -75,10 +75,9 @@ public sealed class RespawnSystem : NetworkBehaviour
 
         player.Health.ResetHealth();  
         player.Teleport(pos, rot);
+        player.IsVisible = true;
     }
 
-
-    // маленький пул листов, чтобы не аллоцировать в FixedUpdateNetwork
     private static class ListPool<T>
     {
         private static readonly Stack<List<T>> Pool = new();

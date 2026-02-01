@@ -1,8 +1,6 @@
 using Fusion;
 using Fusion.Addons.KCC;
-using System;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public enum AbilityMode : byte
 {
@@ -15,10 +13,18 @@ public class Player : NetworkBehaviour
 {
     public NetworkHealth Health;
     public bool IsReady;
+    public bool IsDead => Health != null && Health.CurrentHealth <= 0;
+
+    [Networked, OnChangedRender(nameof(OnDeathStateChanged))]
+    public NetworkBool IsVisible { get; set; } = true;
+
+    [SerializeField] private MeshRenderer[] modelParts;
+
+
     [Networked] public int Kills { get; private set; }
     [Networked] public int Score { get; private set; }
 
-    [SerializeField] private MeshRenderer[] modelParts;
+   
     [SerializeField] private LayerMask lagCompLayers;
     [SerializeField] private KCC kcc;
     [SerializeField] private KCCProcessor glideProcessor;
@@ -78,6 +84,43 @@ public class Player : NetworkBehaviour
     private bool _yawInitialized;
     const float deadZoneSqr = 0.04f; // ~0.2м
 
+    void OnDeathStateChanged()
+    {
+        // 1. Визуал
+        if (modelParts != null)
+        {
+            foreach (var part in modelParts)
+                if (part != null) part.enabled = IsVisible;
+        }
+
+        // 2. Слой (самый надежный способ для Raycast и физики)
+        int targetLayer = IsVisible ? LayerMask.NameToLayer("Default") : LayerMask.NameToLayer("Ignore Raycast");
+        gameObject.layer = targetLayer;
+        SetLayerRecursively(transform, targetLayer);
+
+        // 3. Отключаем стандартный коллайдер Unity (чтобы игроки не сталкивались)
+        var mainCollider = GetComponent<CapsuleCollider>();
+        if (mainCollider != null) mainCollider.enabled = IsVisible;
+
+        // 4. Отключаем систему хитбоксов Fusion
+        var hitboxRoot = GetComponent<HitboxRoot>();
+        if (hitboxRoot != null) hitboxRoot.enabled = IsVisible;
+
+        // 5. Полностью деактивируем KCC
+        if (kcc != null)
+        {
+            if (IsVisible) kcc.SetActive(true);
+            else kcc.SetActive(false);
+        }
+    }
+    private void SetLayerRecursively(Transform parent, int layer)
+    {
+        parent.gameObject.layer = layer;
+        foreach (Transform child in parent)
+        {
+            SetLayerRecursively(child, layer);
+        }
+    }
 
     public override void Spawned()
     {
@@ -91,9 +134,6 @@ public class Player : NetworkBehaviour
 
         if (HasInputAuthority)
         {
-            foreach (MeshRenderer renderer in modelParts)
-                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
-
             inputManager = Runner.GetComponent<InputManager>();
             inputManager.LocalPlayer = this;
             Name = PlayerPrefs.GetString("Photon.Menu.Username");
@@ -124,7 +164,7 @@ public class Player : NetworkBehaviour
     }
 
 
-    private void UpdateCursorRotation()
+/*    private void UpdateCursorRotation()
     {
         if (!HasInputAuthority) return;
 
@@ -140,7 +180,7 @@ public class Player : NetworkBehaviour
             float deltaYaw = Mathf.SmoothDampAngle(currentYaw, targetYaw, ref _yawVelocity, 0.01f);
             kcc.SetLookRotation(kcc.GetLookRotation().x, deltaYaw);
         }
-    }
+    }*/
 
 
     public override void Despawned(NetworkRunner runner, bool hasState)
@@ -154,6 +194,11 @@ public class Player : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
+        if (IsDead)
+        {
+            return;
+        }
+
         if (!GetInput(out NetInput input))
             return;
 

@@ -51,7 +51,6 @@ public class UIManager : MonoBehaviour
         {
             MatchEventBus.Instance.MatchStateChanged += OnMatchStateChanged;
             MatchEventBus.Instance.LeaderboardChanged += OnLeaderboardChanged;
-            Debug.LogError("OnEnableRaiseRegistryReady");
             MatchEventBus.Instance.RegistryReady += OnRegistryReady;
         }
     }
@@ -149,7 +148,6 @@ public class UIManager : MonoBehaviour
 
     private void OnRegistryReady(PlayerRegistry registry)
     {
-        Debug.LogError("UIManagerRaiseRegistryReady");
         playerRegistry = registry;
     }
 
