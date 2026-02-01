@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8314407117558394256}
   - component: {fileID: -6357611650493925582}
   - component: {fileID: -2139437223789688539}
-  - component: {fileID: 4185882572312835212}
+  - component: {fileID: 7272823018356833177}
   m_Layer: 0
   m_Name: Pfb_SubRock02
   m_TagString: Untagged
@@ -84,7 +84,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &4185882572312835212
+--- !u!64 &7272823018356833177
 MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
