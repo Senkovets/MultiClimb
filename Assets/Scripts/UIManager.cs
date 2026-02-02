@@ -26,6 +26,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Slider glideCD;
     [SerializeField] private Image glideActive;
     [SerializeField] private Slider doubleJumpCD;
+
     [SerializeField] private LeaderboardItem[] leaderboardItems;
 
     public Player LocalPlayer;

@@ -289,7 +289,7 @@ public class GunController : NetworkBehaviour
             Object.InputAuthority,
             out LagCompensatedHit hit,
             hitLayers,
-            HitOptions.None | HitOptions.IgnoreInputAuthority
+            HitOptions.IncludePhysX | HitOptions.IgnoreInputAuthority
         );
 
         Vector3 endPoint;

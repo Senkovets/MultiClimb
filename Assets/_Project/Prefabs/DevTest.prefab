@@ -22,7 +22,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2253994489593247873
 Transform:
   m_ObjectHideFlags: 0
@@ -141,6 +141,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _CurrentHealth: 0
+  _CurrentArmor: 0
+  healthBar: {fileID: 0}
+  armorBar: {fileID: 0}
 --- !u!114 &2700326673954693321
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -200,7 +203,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1500859681963962955
 Transform:
   m_ObjectHideFlags: 0
@@ -319,6 +322,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _CurrentHealth: 0
+  _CurrentArmor: 0
+  healthBar: {fileID: 0}
+  armorBar: {fileID: 0}
 --- !u!114 &8282959942602249855
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -378,7 +384,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4429768874088492653
 Transform:
   m_ObjectHideFlags: 0
@@ -498,6 +504,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _CurrentHealth: 0
+  _CurrentArmor: 0
+  healthBar: {fileID: 0}
+  armorBar: {fileID: 0}
 --- !u!114 &7965206774317215012
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -554,7 +563,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1374144266331937213
 Transform:
   m_ObjectHideFlags: 0
