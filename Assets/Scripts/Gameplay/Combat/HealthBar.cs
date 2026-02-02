@@ -4,6 +4,11 @@ using UnityEngine.UI;
 
 public class HealthBar : MonoBehaviour
 {
+    public enum BarType { Health, Armor }
+
+    [Header("Mode")]
+    [SerializeField] private BarType barType = BarType.Health;
+
     [Header("Refs")]
     [SerializeField] private Image fill;
     [SerializeField] private Image followFill;   // optional
@@ -22,6 +27,8 @@ public class HealthBar : MonoBehaviour
 
     [Header("World UI")]
     [SerializeField] private Vector3 offset = new(0, 1f, 0);
+
+    [SerializeField] private CanvasGroup canvasGroup;
 
     private NetworkHealth health;
     private Camera cam;
@@ -55,11 +62,30 @@ public class HealthBar : MonoBehaviour
         tr.rotation = Quaternion.LookRotation(tr.position - cam.transform.position);
     }
 
+    public void SetVisible(bool visible)
+    {
+        if (canvasGroup == null) return;
+        canvasGroup.alpha = visible ? 1f : 0f;
+        canvasGroup.blocksRaycasts = visible;
+        canvasGroup.interactable = visible;
+    }
+
+    private float GetNormalized()
+    {
+        if (health == null) return 0f;
+
+        float cur = barType == BarType.Health ? health.CurrentHealth : health.CurrentArmor;
+        float max = barType == BarType.Health ? health.MaxHealth : health.MaxArmor;
+
+        if (max <= 0f) return 0f;
+        return Mathf.Clamp01(cur / max);
+    }
+
     public void UpdateBar(bool instant = false)
     {
-        if (health == null) return;
+        if (health == null || fill == null) return;
 
-        float t = Mathf.Clamp01(health.CurrentHealth / health.MaxHealth);
+        float t = GetNormalized();
         fill.fillAmount = t;
 
         if (followFill != null)
@@ -83,7 +109,6 @@ public class HealthBar : MonoBehaviour
     // Вызывается из NetworkHealth.OnDamageEvent()
     public void PlayDamageFeedback(float damage, bool crit)
     {
-        // Сначала обновим бар (fill моментально, follow догоняет)
         UpdateBar(false);
 
         // Punch (дергание)
