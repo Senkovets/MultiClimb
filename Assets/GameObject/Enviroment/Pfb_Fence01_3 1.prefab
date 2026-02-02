@@ -64,7 +64,7 @@ GameObject:
   - component: {fileID: 4921348573689411}
   - component: {fileID: 33103543870688673}
   - component: {fileID: 23964335499591409}
-  - component: {fileID: 3162912409505754121}
+  - component: {fileID: 241493838713978728}
   m_Layer: 0
   m_Name: Pfb_Fence01_3 1
   m_TagString: Untagged
@@ -138,8 +138,8 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &3162912409505754121
-MeshCollider:
+--- !u!65 &241493838713978728
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -154,9 +154,8 @@ MeshCollider:
     m_Bits: 0
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
-  m_ProvidesContacts: 1
+  m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 4300000, guid: 8a7ecf1bd4dd2464393ecbd79ec9de4c, type: 2}
+  serializedVersion: 3
+  m_Size: {x: 0.4761114, y: 0.94069755, z: 4.2141714}
+  m_Center: {x: 0.23704433, y: 0.47034878, z: 2.0431733}
