@@ -28,6 +28,8 @@ public class Player : NetworkBehaviour
 
     const float deadZoneSqr = 0.04f; // ~0.2м
 
+    public GameObject HeadColider; 
+
     //-----------------------------------------------
 
     [SerializeField] private LayerMask lagCompLayers;
@@ -122,6 +124,7 @@ public class Player : NetworkBehaviour
     {
         if (IsDead)
         {
+            kcc.SetInputDirection(Vector3.zero);
             return;
         }
 
@@ -210,6 +213,8 @@ public class Player : NetworkBehaviour
         // 1. Стандартная логика для Unity (визуал и обычные лучи)
         SetLayerRecursively(transform, targetLayer);
 
+        
+
         if (modelParts != null)
         {
             foreach (var part in modelParts)
@@ -231,11 +236,13 @@ public class Player : NetworkBehaviour
         {
             if (IsVisible)
             {
+                HeadColider.SetActive(true);
                 kcc.SetColliderLayer(LayerMask.NameToLayer("Player"));
                 kcc.SetCollisionLayerMask(LayerMask.GetMask("Default", "Player", "Ground"));
             }
             else
             {
+                HeadColider.SetActive(false);
                 kcc.SetColliderLayer(LayerMask.NameToLayer("Ignore Raycast"));
                 kcc.SetCollisionLayerMask(LayerMask.GetMask("Ground"));
             }

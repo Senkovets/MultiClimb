@@ -2424,6 +2424,7 @@ MonoBehaviour:
   - {fileID: 6620185592206706922}
   _Kills: 0
   _Score: 0
+  HeadColider: {fileID: 2843048504954106010}
   lagCompLayers:
     serializedVersion: 2
     m_Bits: 1

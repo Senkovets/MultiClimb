@@ -85,6 +85,10 @@ namespace MultiClimb.Match
                         if (p != null && p.Kills >= killsToWin)
                         {
                             Winner = p;
+
+                            //принудительное обновление 
+                            LeaderboardSystem.Tick();
+
                             State = GameState.Waiting;
 
                             // сбросим готовность, чтобы не было Уавто-готовностиФ
@@ -99,8 +103,9 @@ namespace MultiClimb.Match
             }
 
             // Ћидерборд обновл€ем во врем€ игры (не на ресимул€ции)
-            if (State == GameState.Playing)
+            if (State == GameState.Playing || (State == GameState.Waiting && Winner != null))
                 LeaderboardSystem.Tick();
+
         }
 
         private void StartNewRound()
