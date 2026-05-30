@@ -238,6 +238,7 @@ GameObject:
   m_Component:
   - component: {fileID: 272964414}
   - component: {fileID: 272964415}
+  - component: {fileID: 272964416}
   m_Layer: 0
   m_Name: Bootstrap
   m_TagString: Untagged
@@ -275,8 +276,21 @@ MonoBehaviour:
   menuUIController: {fileID: 1088467789}
   menuConnectionBehaviour: {fileID: 1088467788}
   fusionMenuConfig: {fileID: 11400000, guid: a0870891dd1bd554da02fcf044718894, type: 2}
-  startMenuOnAwake: 1
+  startMenuOnStart: 1
+  waitOneFrameBeforeStart: 1
   failFast: 1
+--- !u!114 &272964416
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 272964413}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8eecffb1ac0f5944bb61be84b7c4f86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &289141128
 GameObject:
   m_ObjectHideFlags: 0
@@ -2610,7 +2624,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Material: {fileID: 1404354953}
+  m_Material: {fileID: 1447145927}
   m_Color: {r: 0.25490198, g: 0.25490198, b: 0.25490198, a: 0.49019608}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
@@ -3269,7 +3283,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!21 &1404354953
+--- !u!21 &1447145927
 Material:
   serializedVersion: 8
   m_ObjectHideFlags: 0
