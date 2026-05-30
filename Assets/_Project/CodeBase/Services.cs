@@ -1,7 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+namespace _Project.CodeBase
+{
 public class Services : MonoBehaviour
 {
     // Start is called before the first frame update
@@ -15,4 +15,6 @@ public class Services : MonoBehaviour
     {
         
     }
+}
+
 }

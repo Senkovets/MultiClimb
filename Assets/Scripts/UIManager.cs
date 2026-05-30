@@ -101,9 +101,9 @@ public class UIManager : MonoBehaviour
         instructionText.text = "Waiting for other players to be ready...";
     }
 
-    public void SetWaitUI(GameState newState, Player winner)
+    public void SetWaitUI(MatchState newState, Player winner)
     {
-        if (newState == GameState.Waiting)
+        if (newState == MatchState.Waiting)
         {
             if (winner == null)
             {
@@ -117,8 +117,8 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        gameStateText.enabled = newState == GameState.Waiting;
-        instructionText.enabled = newState == GameState.Waiting;
+        gameStateText.enabled = newState == MatchState.Waiting;
+        instructionText.enabled = newState == MatchState.Waiting;
     }
 
     public void SelectAbility(AbilityMode mode)

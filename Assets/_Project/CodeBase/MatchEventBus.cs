@@ -38,10 +38,10 @@ namespace _Project.CodeBase
 
     public readonly struct MatchStateChangedEvent
     {
-        public readonly GameState State;
+        public readonly MatchState State;
         public readonly PlayerRef Winner; // PlayerRef.None ���� ��� ����������
 
-        public MatchStateChangedEvent(GameState state, PlayerRef winner)
+        public MatchStateChangedEvent(MatchState state, PlayerRef winner)
         {
             State = state;
             Winner = winner;

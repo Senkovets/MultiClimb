@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace MultiClimb.Match
 {
-    public enum GameState
+    public enum MatchState
     {
         Waiting,
         Playing,
@@ -26,7 +26,7 @@ namespace MultiClimb.Match
         [SerializeField] private float roundRestartDelay = 3f;
 
         [Networked] private Player Winner { get; set; }
-        [Networked, OnChangedRender(nameof(GameStateChanged))] private GameState State { get; set; }
+        [Networked, OnChangedRender(nameof(GameStateChanged))] private MatchState State { get; set; }
 
         // ������ ������ ��������
         [Networked] private TickTimer NextRoundTimer { get; set; }
@@ -34,7 +34,7 @@ namespace MultiClimb.Match
         public override void Spawned()
         {
             Winner = null;
-            State = GameState.Waiting;
+            State = MatchState.Waiting;
             NextRoundTimer = TickTimer.None;
 
             // UI ������ �� ������� �������� � ������ ����� event bus
@@ -56,7 +56,7 @@ namespace MultiClimb.Match
             if (Runner.IsServer)
             {
                 // 1) Waiting -> Playing (������ ����� ����� ready)
-                if (State == GameState.Waiting)
+                if (State == MatchState.Waiting)
                 {
                     // ���� ����� ������ ����-������ � ��� ���
                     if (NextRoundTimer.IsRunning && !NextRoundTimer.ExpiredOrNotRunning(Runner))
@@ -78,7 +78,7 @@ namespace MultiClimb.Match
                 }
 
                 // 2) Playing: �������� win condition �� ������
-                if (State == GameState.Playing && Winner == null)
+                if (State == MatchState.Playing && Winner == null)
                 {
                     foreach (KeyValuePair<PlayerRef, Player> kv in PlayerRegistry.Players)
                     {
@@ -90,7 +90,7 @@ namespace MultiClimb.Match
                             //�������������� ���������� 
                             LeaderboardSystem.Tick();
 
-                            State = GameState.Waiting;
+                            State = MatchState.Waiting;
 
                             // ������� ����������, ����� �� ���� �����-����������
                             ReadySystem.UnreadyAll();
@@ -104,7 +104,7 @@ namespace MultiClimb.Match
             }
 
             // ��������� ��������� �� ����� ���� (�� �� �����������)
-            if (State == GameState.Playing || (State == GameState.Waiting && Winner != null))
+            if (State == MatchState.Playing || (State == MatchState.Waiting && Winner != null))
                 LeaderboardSystem.Tick();
 
         }
@@ -112,7 +112,7 @@ namespace MultiClimb.Match
         private void StartNewRound()
         {
             Winner = null;
-            State = GameState.Playing;
+            State = MatchState.Playing;
             NextRoundTimer = TickTimer.None;
 
             PreparePlayers();
