@@ -11,7 +11,8 @@ GameObject:
   - component: {fileID: 8314407117558394256}
   - component: {fileID: -6769249817385490510}
   - component: {fileID: 4457965609985902617}
-  - component: {fileID: -2192796949920620216}
+  - component: {fileID: -384085420409718486}
+  - component: {fileID: 7551451837849089367}
   m_Layer: 0
   m_Name: Pfb_SubRock01
   m_TagString: Untagged
@@ -84,8 +85,29 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &-2192796949920620216
-MeshCollider:
+--- !u!65 &-384085420409718486
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4806383720666177293}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 1
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.9, y: 1.68161, z: 6.5}
+  m_Center: {x: -0.4, y: 1.6816101, z: -0.3}
+--- !u!135 &7551451837849089367
+SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -102,7 +124,6 @@ MeshCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 4300000, guid: ecc0fcb68cc146c40bebbc60d3dd3c3f, type: 2}
+  serializedVersion: 3
+  m_Radius: 1.5
+  m_Center: {x: -0.08, y: 2, z: 1.6}

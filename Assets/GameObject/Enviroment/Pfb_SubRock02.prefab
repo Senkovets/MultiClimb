@@ -11,7 +11,9 @@ GameObject:
   - component: {fileID: 8314407117558394256}
   - component: {fileID: -6357611650493925582}
   - component: {fileID: -2139437223789688539}
-  - component: {fileID: 7272823018356833177}
+  - component: {fileID: -2177652619283855080}
+  - component: {fileID: 4746296396913953866}
+  - component: {fileID: 8563741796411104560}
   m_Layer: 0
   m_Name: Pfb_SubRock02
   m_TagString: Untagged
@@ -84,8 +86,29 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &7272823018356833177
-MeshCollider:
+--- !u!65 &-2177652619283855080
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4806383720666177293}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 1
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.2, y: 0, z: 4}
+  m_Center: {x: 0.15, y: 1.9, z: -0.1}
+--- !u!135 &4746296396913953866
+SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -102,7 +125,27 @@ MeshCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 4300000, guid: a4bdfeb55bf9f9848926d8e22a4ef0eb, type: 2}
+  serializedVersion: 3
+  m_Radius: 1.6
+  m_Center: {x: -0.1, y: 1.6465148, z: -0.39}
+--- !u!65 &8563741796411104560
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4806383720666177293}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.8, y: 1, z: 5.7}
+  m_Center: {x: -0.2, y: 0.6, z: -0.45}

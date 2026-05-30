@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4724207120125994}
   - component: {fileID: 33105425183738523}
   - component: {fileID: 23341933317018695}
-  - component: {fileID: 3613725902850368852}
+  - component: {fileID: 2226434535267713143}
   m_Layer: 0
   m_Name: Pfb_Rock_03 2_Boundary 1x4 1
   m_TagString: Untagged
@@ -84,8 +84,8 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &3613725902850368852
-MeshCollider:
+--- !u!65 &2226434535267713143
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -102,7 +102,6 @@ MeshCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 4300000, guid: 886b49e5c7aa2934884a6be92bc0b7bf, type: 2}
+  serializedVersion: 3
+  m_Size: {x: 1, y: 12.6147375, z: 7.9}
+  m_Center: {x: -0.38, y: 6.3073688, z: 0}
