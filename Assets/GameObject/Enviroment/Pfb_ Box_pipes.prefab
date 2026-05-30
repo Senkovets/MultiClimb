@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 1970239359211507025}
   - component: {fileID: -8340592278816694244}
   - component: {fileID: 6543625134259203527}
-  - component: {fileID: 6571875821371646057}
   m_Layer: 0
   m_Name: Pfb_ Box_pipes
   m_TagString: Untagged
@@ -84,25 +83,3 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 25986621131574272}
   m_Mesh: {fileID: 4300000, guid: 60f02c9201282734990cb3cfcf8f2808, type: 2}
---- !u!64 &6571875821371646057
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 25986621131574272}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 0}

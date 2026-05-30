@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 1970239359211507025}
   - component: {fileID: -7783718516093953869}
   - component: {fileID: 2381719178916027971}
-  - component: {fileID: 2508824774664112098}
   m_Layer: 0
   m_Name: Pfb_ Bench
   m_TagString: Untagged
@@ -84,25 +83,3 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 25986621131574272}
   m_Mesh: {fileID: 4300000, guid: 3e7e2ec3f2202f24db0bbcac3b90cb63, type: 2}
---- !u!64 &2508824774664112098
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 25986621131574272}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 1
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 0}

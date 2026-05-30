@@ -64,7 +64,6 @@ GameObject:
   - component: {fileID: 4415831964059997}
   - component: {fileID: 33889296065564331}
   - component: {fileID: 23345416317291922}
-  - component: {fileID: 7244740096779225944}
   m_Layer: 0
   m_Name: Pfb_Wall_005
   m_TagString: Untagged
@@ -139,27 +138,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &7244740096779225944
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1795960081918312}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 3.002923, y: 3.0000408, z: 1.5}
-  m_Center: {x: -0.007789135, y: 1.4999796, z: 0}
 --- !u!1 &1918495558888952
 GameObject:
   m_ObjectHideFlags: 0
