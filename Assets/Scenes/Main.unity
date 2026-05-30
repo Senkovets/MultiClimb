@@ -228,6 +228,55 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &272964413
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 272964414}
+  - component: {fileID: 272964415}
+  m_Layer: 0
+  m_Name: Bootstrap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &272964414
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 272964413}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &272964415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 272964413}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73065a5147399594688889944e05ace0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  menuUIController: {fileID: 1088467789}
+  menuConnectionBehaviour: {fileID: 1088467788}
+  fusionMenuConfig: {fileID: 11400000, guid: a0870891dd1bd554da02fcf044718894, type: 2}
+  startMenuOnAwake: 1
+  failFast: 1
 --- !u!1 &289141128
 GameObject:
   m_ObjectHideFlags: 0
@@ -2452,6 +2501,30 @@ RectTransform:
     type: 3}
   m_PrefabInstance: {fileID: 5393762179164766075}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1088467788 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 841090234438633705, guid: e63a6375602a41b47a004c3d50f613c2,
+    type: 3}
+  m_PrefabInstance: {fileID: 5393762179164766075}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 235aed1efc9f1ef45a6ba32a4bac8f5c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1088467789 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1123468795944434717, guid: e63a6375602a41b47a004c3d50f613c2,
+    type: 3}
+  m_PrefabInstance: {fileID: 5393762179164766075}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 305f58c6681d93d458827b9614b004eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1111702367
 GameObject:
   m_ObjectHideFlags: 0
@@ -2537,7 +2610,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Material: {fileID: 1541112814}
+  m_Material: {fileID: 1404354953}
   m_Color: {r: 0.25490198, g: 0.25490198, b: 0.25490198, a: 0.49019608}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
@@ -3196,6 +3269,45 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!21 &1404354953
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: RoundCorner
+  m_Shader: {fileID: 4800000, guid: b97c9ee0ebbd06a49b522e988da86fdb, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _CornerType: 0
+    - _Height: 274
+    - _N: 16.245092
+    - _Radius: 0.15
+    - _RoundType: 0
+    - _Width: 250
+    m_Colors:
+    - _FreeN: {r: 12.224296, g: 12.224296, b: 12.224296, a: 12.224296}
+    - _FreeRadius: {r: 0.2, g: 0.2, b: 0.2, a: 0.2}
+  m_BuildTextureStacks: []
 --- !u!1 &1448562959
 GameObject:
   m_ObjectHideFlags: 0
@@ -3512,45 +3624,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!21 &1541112814
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: RoundCorner
-  m_Shader: {fileID: 4800000, guid: b97c9ee0ebbd06a49b522e988da86fdb, type: 3}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Ints: []
-    m_Floats:
-    - _CornerType: 0
-    - _Height: 274
-    - _N: 16.245092
-    - _Radius: 0.15
-    - _RoundType: 0
-    - _Width: 250
-    m_Colors:
-    - _FreeN: {r: 12.224296, g: 12.224296, b: 12.224296, a: 12.224296}
-    - _FreeRadius: {r: 0.2, g: 0.2, b: 0.2, a: 0.2}
-  m_BuildTextureStacks: []
 --- !u!1001 &1658341496
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3985,6 +4058,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d116bb934979942488f051a86954ea81, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  playerRegistry: {fileID: 0}
   gameStateText: {fileID: 932010820}
   instructionText: {fileID: 531578780}
   breakCD: {fileID: 1481013349}
@@ -4543,3 +4617,4 @@ SceneRoots:
   - {fileID: 330585546}
   - {fileID: 1835609160}
   - {fileID: 1323322293}
+  - {fileID: 272964414}

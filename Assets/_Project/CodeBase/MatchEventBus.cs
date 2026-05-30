@@ -1,9 +1,10 @@
-using Fusion;
 using System;
 using System.Collections.Generic;
+using Fusion;
+using MultiClimb.Match;
 using UnityEngine;
 
-namespace MultiClimb.Match
+namespace _Project.CodeBase
 {
     public sealed class MatchEventBus : MonoBehaviour
     {
@@ -38,7 +39,7 @@ namespace MultiClimb.Match
     public readonly struct MatchStateChangedEvent
     {
         public readonly GameState State;
-        public readonly PlayerRef Winner; // PlayerRef.None если нет победителя
+        public readonly PlayerRef Winner; // PlayerRef.None пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
         public MatchStateChangedEvent(GameState state, PlayerRef winner)
         {

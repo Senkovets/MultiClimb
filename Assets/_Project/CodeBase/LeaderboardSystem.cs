@@ -1,4 +1,5 @@
 using System.Linq;
+using _Project.CodeBase;
 using Fusion;
 using UnityEngine;
 
@@ -8,7 +9,7 @@ namespace MultiClimb.Match
     {
         [SerializeField] private PlayerRegistry registry;
 
-        [Tooltip("Как часто пересчитывать лидерборд (в тиках Fusion). 0 = каждый тик.")]
+        [Tooltip("пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅ пїЅпїЅпїЅпїЅпїЅ Fusion). 0 = пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ.")]
         [SerializeField] private int updateEveryNTicks = 10;
 
         private int _lastTick = -999999;
@@ -24,7 +25,7 @@ namespace MultiClimb.Match
 
             _lastTick = Runner.Tick;
 
-            // Сортируем по Score (как у тебя было)
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ Score (пїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ)
             var sorted = registry.Players
                 .OrderByDescending(p => p.Value.Score)
                 .ToArray();

@@ -1,6 +1,7 @@
 using Fusion;
 using MultiClimb.Match;
 using System.Collections.Generic;
+using _Project.CodeBase;
 using UnityEngine;
 
 public sealed class RespawnSystem : NetworkBehaviour
@@ -17,29 +18,29 @@ public sealed class RespawnSystem : NetworkBehaviour
 
     public override void Spawned()
     {
-        // Подписка на событие смерти
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
         if (MatchEventBus.Instance != null)
             MatchEventBus.Instance.PlayerDied += OnPlayerDied;
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
-        // Отписка
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         if (MatchEventBus.Instance != null)
             MatchEventBus.Instance.PlayerDied -= OnPlayerDied;
 
         _pending.Clear();
     }
 
-    // В RespawnSystem.cs (только на State Authority)
+    // пїЅ RespawnSystem.cs (пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ State Authority)
     private void OnPlayerDied(PlayerDiedEvent e)
     {
         if (!HasStateAuthority) return;
 
         if (registry.TryGet(e.Victim, out Player player))
         {
-            // 1. Устанавливаем сетевое свойство в false
-            // Это автоматически вызовет OnDeathStateChanged у всех
+            // 1. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ false
+            // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ OnDeathStateChanged пїЅ пїЅпїЅпїЅпїЅ
             player.IsVisible = false;
         }
 
@@ -50,9 +51,9 @@ public sealed class RespawnSystem : NetworkBehaviour
     {
         if (!registry.TryGet(victim, out Player player)) return;
 
-        // При респавне возвращаем всё назад
+        // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
         player.Health.ResetHealth();
-        player.IsVisible = true; // Снова вызывается OnDeathStateChanged
+        player.IsVisible = true; // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ OnDeathStateChanged
 
         spawner.GetRandomSpawn(out var pos, out var rot);
         player.Teleport(pos, rot);
@@ -63,7 +64,7 @@ public sealed class RespawnSystem : NetworkBehaviour
         if (!HasStateAuthority) return;
         if (_pending.Count == 0) return;
 
-        // чтобы безопасно удалять из словаря во время прохода
+        // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         var toRespawn = ListPool<PlayerRef>.Get();
 
         foreach (var kv in _pending)

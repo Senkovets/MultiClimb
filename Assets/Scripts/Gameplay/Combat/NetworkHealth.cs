@@ -1,3 +1,4 @@
+using _Project.CodeBase;
 using Fusion;
 using MultiClimb.Match;
 using UnityEngine;
@@ -19,13 +20,13 @@ public class NetworkHealth : NetworkBehaviour
     private HurtVisual hurtVisual;
     private DamagePopupSpawner damagePopup;
 
-    // "Событие урона" (каждый хит увеличивает seq)
+    // "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ" (пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ seq)
     [Networked, OnChangedRender(nameof(OnDamageEvent))] private int DamageSeq { get; set; }
 
-    // Payload для визуала
-    [Networked] private float LastDamageTotal { get; set; }      // входящий урон (как прилетело)
-    [Networked] private float LastDamageToArmor { get; set; }    // сколько реально ушло в броню
-    [Networked] private float LastDamageToHealth { get; set; }   // сколько реально ушло в HP
+    // Payload пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+    [Networked] private float LastDamageTotal { get; set; }      // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ (пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
+    [Networked] private float LastDamageToArmor { get; set; }    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ
+    [Networked] private float LastDamageToHealth { get; set; }   // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ HP
     [Networked] private byte LastWasCrit { get; set; }           // 0/1
     [Networked] private Vector3 LastHitPoint { get; set; }
 
@@ -39,7 +40,7 @@ public class NetworkHealth : NetworkBehaviour
         if (HasStateAuthority)
         {
             CurrentHealth = MaxHealth;
-            CurrentArmor = MaxArmor; // стартовая броня
+            CurrentArmor = MaxArmor; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
         }
 
         healthBar?.Init(this);
@@ -61,7 +62,7 @@ public class NetworkHealth : NetworkBehaviour
         float dmgToArmor = 0f;
         float dmgToHealth = 0f;
 
-        // 1) броня
+        // 1) пїЅпїЅпїЅпїЅпїЅ
         if (CurrentArmor > 0f && dmgLeft > 0f)
         {
             dmgToArmor = Mathf.Min(CurrentArmor, dmgLeft);
@@ -69,14 +70,14 @@ public class NetworkHealth : NetworkBehaviour
             dmgLeft -= dmgToArmor;
         }
 
-        // 2) хп
+        // 2) пїЅпїЅ
         if (dmgLeft > 0f)
         {
             dmgToHealth = Mathf.Min(CurrentHealth, dmgLeft);
             CurrentHealth = Mathf.Max(0f, CurrentHealth - dmgToHealth);
         }
 
-        // Payload для клиентов (то, что реально произошло)
+        // Payload пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
         LastDamageTotal = damage;
         LastDamageToArmor = dmgToArmor;
         LastDamageToHealth = dmgToHealth;
@@ -133,18 +134,18 @@ public class NetworkHealth : NetworkBehaviour
     {
         bool crit = LastWasCrit != 0;
 
-        // UI-feedback по HP (если хочешь — только когда реально по HP прилетело)
+        // UI-feedback пїЅпїЅ HP (пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ HP пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
         if (LastDamageToHealth > 0f)
             healthBar?.PlayDamageFeedback(LastDamageToHealth, crit);
 
-        // Если хочешь отдельный “щитовик” по броне — добавь метод/эффект.
+        // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ/пїЅпїЅпїЅпїЅпїЅпїЅ.
          if (LastDamageToArmor > 0f)
              armorBar?.PlayDamageFeedback(LastDamageToArmor, crit);
 
         hurtVisual?.PlayHurt(crit);
 
-        // Попап: чаще показывают total или реальный урон по HP — выбери стиль.
-        // Я бы показывал total, чтобы игрок видел “сколько прилетело”.
+        // пїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ total пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ HP пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ.
+        // пїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ total, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
         damagePopup?.Pop(LastDamageTotal, LastHitPoint, crit);
     }
 }

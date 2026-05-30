@@ -1,6 +1,7 @@
 using Fusion;
 using MultiClimb.Match;
 using System.Collections.Generic;
+using _Project.CodeBase;
 using UnityEngine;
 
 namespace MultiClimb.Match
@@ -27,7 +28,7 @@ namespace MultiClimb.Match
         [Networked] private Player Winner { get; set; }
         [Networked, OnChangedRender(nameof(GameStateChanged))] private GameState State { get; set; }
 
-        // Таймер “между раундами”
+        // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         [Networked] private TickTimer NextRoundTimer { get; set; }
 
         public override void Spawned()
@@ -36,7 +37,7 @@ namespace MultiClimb.Match
             State = GameState.Waiting;
             NextRoundTimer = TickTimer.None;
 
-            // UI теперь НЕ дергаем напрямую — только через event bus
+            // UI пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ event bus
             GameStateChanged();
 
             Runner.SetIsSimulated(Object, true);
@@ -44,7 +45,7 @@ namespace MultiClimb.Match
             UIManager.Singleton.Init();
         }
 
-        // ?? Больше не нужно (киллы определяют победу)
+        // ?? пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ)
         // private void OnTriggerEnter(Collider other) { ... }
 
         public override void FixedUpdateNetwork()
@@ -54,21 +55,21 @@ namespace MultiClimb.Match
 
             if (Runner.IsServer)
             {
-                // 1) Waiting -> Playing (первый старт через ready)
+                // 1) Waiting -> Playing (пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ ready)
                 if (State == GameState.Waiting)
                 {
-                    // Если стоит таймер авто-старта — ждём его
+                    // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ
                     if (NextRoundTimer.IsRunning && !NextRoundTimer.ExpiredOrNotRunning(Runner))
                         return;
 
-                    // Авто-старт после победы
+                    // пїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
                     if (NextRoundTimer.ExpiredOrNotRunning(Runner) && Winner != null)
                     {
                         StartNewRound();
                         return;
                     }
 
-                    // Первый старт/ручной старт через Ready
+                    // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ/пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ Ready
                     if (Winner == null && ReadySystem.AreAllReady())
                     {
                         StartNewRound();
@@ -76,7 +77,7 @@ namespace MultiClimb.Match
                     }
                 }
 
-                // 2) Playing: проверка win condition по киллам
+                // 2) Playing: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ win condition пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
                 if (State == GameState.Playing && Winner == null)
                 {
                     foreach (KeyValuePair<PlayerRef, Player> kv in PlayerRegistry.Players)
@@ -86,15 +87,15 @@ namespace MultiClimb.Match
                         {
                             Winner = p;
 
-                            //принудительное обновление 
+                            //пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 
                             LeaderboardSystem.Tick();
 
                             State = GameState.Waiting;
 
-                            // сбросим готовность, чтобы не было “авто-готовности”
+                            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                             ReadySystem.UnreadyAll();
 
-                            // запускаем авто-рестарт раунда
+                            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
                             NextRoundTimer = TickTimer.CreateFromSeconds(Runner, roundRestartDelay);
                             break;
                         }
@@ -102,7 +103,7 @@ namespace MultiClimb.Match
                 }
             }
 
-            // Лидерборд обновляем во время игры (не на ресимуляции)
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ (пїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
             if (State == GameState.Playing || (State == GameState.Waiting && Winner != null))
                 LeaderboardSystem.Tick();
 
@@ -116,17 +117,17 @@ namespace MultiClimb.Match
 
             PreparePlayers();
 
-            // Сброс киллов/очков на новый раунд
+            // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ/пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
             foreach (var kv in PlayerRegistry.Players)
             {
                 var p = kv.Value;
                 if (p == null) continue;
 
-                // Вариант 1 (если поля сетевые и сеттеры доступны):
+                // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ 1 (пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ):
                 // p.Kills = 0;
                 // p.Score = 0;
 
-                // Вариант 2 (рекомендую): сделай метод в Player
+                // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ 2 (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ): пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ Player
                 p.ResetRoundStats();
             }
         }
@@ -145,7 +146,7 @@ namespace MultiClimb.Match
                 player.Value.Teleport(position, rotation);
                 player.Value.IsCaged = false;
                 player.Value.ResetCooldowns();
-                player.Value.IsReady = false; // на всякий
+                player.Value.IsReady = false; // пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             }
         }
     }
