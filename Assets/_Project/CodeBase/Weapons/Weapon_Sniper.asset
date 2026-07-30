@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6878b59ce1582174488aad147334f92c, type: 3}
+  m_Name: Weapon_Sniper
+  m_EditorClassIdentifier: 
+  WeaponId: 4
+  DisplayName: Sniper
+  FireMode: 2
+  FireRate: 0.1
+  BoltReloadTicks: 75
+  Damage: 85
+  BulletSpeed: 250
+  MaxDistance: 400
+  ScatterAngleDeg: 0
+  InfiniteAmmo: 0
+  AmmoOnPickup: 5
+  RecoilV: 35
+  RecoilH: 0
+  RecoilTime: 0.04
+  RecoilRecoverDelay: 0.1
+  RecoilRecoverSpeed: 220
+  RecoilPattern: {fileID: 0}
+  ViewPrefab: {fileID: 0}
+  AimMarker: {fileID: 0}
+  PelletsPerShot: 1
+  FalloffStartDistance: 999
+  FalloffEndDistance: 1000
+  DamageAtMaxRange: 85
+  CriticalMultiplier: 2.4

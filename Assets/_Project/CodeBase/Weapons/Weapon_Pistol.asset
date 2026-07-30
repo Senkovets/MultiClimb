@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6878b59ce1582174488aad147334f92c, type: 3}
+  m_Name: Weapon_Pistol
+  m_EditorClassIdentifier: 
+  WeaponId: 1
+  DisplayName: Pistol
+  FireMode: 1
+  FireRate: 0.2
+  BoltReloadTicks: 0
+  Damage: 22
+  BulletSpeed: 90
+  MaxDistance: 120
+  ScatterAngleDeg: 1.25
+  InfiniteAmmo: 1
+  AmmoOnPickup: 30
+  RecoilV: 35
+  RecoilH: 0
+  RecoilTime: 0.04
+  RecoilRecoverDelay: 0.1
+  RecoilRecoverSpeed: 220
+  RecoilPattern: {fileID: 11400000, guid: c06b87c09d4596448b5162a8a7ac2155, type: 2}
+  ViewPrefab: {fileID: 2699496443380309608, guid: 1c08a5f0af7f07d4c9cb73e985b11fa1,
+    type: 3}
+  AimMarker: {fileID: 0}
+  PelletsPerShot: 1
+  FalloffStartDistance: 15
+  FalloffEndDistance: 45
+  DamageAtMaxRange: 25
+  CriticalMultiplier: 2

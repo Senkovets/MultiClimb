@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6878b59ce1582174488aad147334f92c, type: 3}
+  m_Name: Weapon_Rifle
+  m_EditorClassIdentifier: 
+  WeaponId: 2
+  DisplayName: Rifle
+  FireMode: 0
+  FireRate: 0.1
+  BoltReloadTicks: 0
+  Damage: 18
+  BulletSpeed: 110
+  MaxDistance: 200
+  ScatterAngleDeg: 1.5
+  InfiniteAmmo: 0
+  AmmoOnPickup: 30
+  RecoilV: 35
+  RecoilH: 0
+  RecoilTime: 0.04
+  RecoilRecoverDelay: 0.1
+  RecoilRecoverSpeed: 220
+  RecoilPattern: {fileID: 0}
+  ViewPrefab: {fileID: 0}
+  AimMarker: {fileID: 0}
+  PelletsPerShot: 1
+  FalloffStartDistance: 25
+  FalloffEndDistance: 70
+  DamageAtMaxRange: 12
+  CriticalMultiplier: 1.8

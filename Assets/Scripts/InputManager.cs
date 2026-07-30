@@ -4,6 +4,7 @@ using Fusion.Sockets;
 using MultiClimb.Menu;
 using System;
 using System.Collections.Generic;
+using _Project.CodeBase.Weapons;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -36,6 +37,8 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
              "Ставь 2 - 3 метра.")]
     [SerializeField] private float minAimDistance = 2.5f;
 
+    private byte desiredWeaponSlot = 0;
+
     public NetInput LastLocalInput { get; private set; }
 
     private NetInput accumulatedInput;
@@ -44,11 +47,29 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 
     private float _lastYaw;
     private Vector3 _lastAimDirXZ = Vector3.forward;
+    
+    [Header("DEBUG — удалить когда будут пикапы")]
+    [SerializeField] private bool debugWeaponKeys = true;
 
     private void Start()
     {
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Confined;
+    }
+    
+    private void ReadDebugWeaponKeys(Keyboard keyboard)
+    {
+        if (!debugWeaponKeys || LocalPlayer == null)
+            return;
+ 
+        var inv = LocalPlayer.GetComponent<WeaponInventory>();
+        if (inv == null)
+            return;
+ 
+        if (keyboard.f1Key.wasPressedThisFrame) inv.RPC_DebugGiveWeapon(1);
+        if (keyboard.f2Key.wasPressedThisFrame) inv.RPC_DebugGiveWeapon(2);
+        if (keyboard.f3Key.wasPressedThisFrame) inv.RPC_DebugGiveWeapon(3);
+        if (keyboard.f4Key.wasPressedThisFrame) inv.RPC_DebugGiveWeapon(4);
     }
 
     // =============================================================
@@ -121,22 +142,21 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             if (keyboard.rKey.wasPressedThisFrame && LocalPlayer != null)
                 LocalPlayer.RPC_SetReady();
 
-            ReadAbilitySwitch(keyboard);
+            ReadDebugWeaponKeys(keyboard);
+            ReadWeaponSwitch(keyboard);
         }
 
         accumulatedInput.Direction = move;
         accumulatedInput.Buttons = buttons;
-        accumulatedInput.AbilityMode = selectedAbility;
+        accumulatedInput.DesiredWeaponSlot = desiredWeaponSlot;
     }
 
-    private void ReadAbilitySwitch(Keyboard keyboard)
+    private void ReadWeaponSwitch(Keyboard keyboard)
     {
         if (keyboard.digit1Key.wasPressedThisFrame)
-            SetAbility(AbilityMode.BreakBlock);
+            desiredWeaponSlot = 0;
         else if (keyboard.digit2Key.wasPressedThisFrame)
-            SetAbility(AbilityMode.Cage);
-        else if (keyboard.digit3Key.wasPressedThisFrame)
-            SetAbility(AbilityMode.Shove);
+            desiredWeaponSlot = 1;
     }
 
     private void SetAbility(AbilityMode mode)
