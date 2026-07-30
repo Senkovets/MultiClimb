@@ -30,6 +30,11 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     [Tooltip("Высота прицельной плоскости над позицией игрока. " +
              "ДОЛЖНА совпадать с высотой ствола, иначе пули уйдут мимо прицела.")]
     [SerializeField] private float aimPlaneHeight = 1.2f;
+    
+    [Tooltip("Минимальное расстояние от игрока до точки прицела. " +
+             "Не даёт пулям вылетать под углом когда прицел вплотную. " +
+             "Ставь 2 - 3 метра.")]
+    [SerializeField] private float minAimDistance = 2.5f;
 
     public NetInput LastLocalInput { get; private set; }
 
@@ -164,21 +169,59 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     {
         if (LocalPlayer == null)
             return Vector3.zero;
-
+ 
         Camera cam = Camera.main;
         if (cam == null)
             return FallbackAimPoint();
-
+ 
         Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
-
+ 
         float planeY = LocalPlayer.transform.position.y + aimPlaneHeight;
         Plane aimPlane = new Plane(Vector3.up, new Vector3(0f, planeY, 0f));
-
-        if (aimPlane.Raycast(ray, out float enter))
-            return ray.GetPoint(enter);
-
-        // Камера параллельна плоскости — практически невозможно
-        return FallbackAimPoint();
+ 
+        Vector3 point = aimPlane.Raycast(ray, out float enter)
+            ? ray.GetPoint(enter)
+            : FallbackAimPoint();
+ 
+        return ClampMinDistance(point, planeY);
+    }
+    
+    /// <summary>
+    /// Выталкивает точку прицела наружу если она слишком близко к игроку.
+    /// Без этого направление выстрела становится непредсказуемым
+    /// (вплоть до стрельбы себе в ноги).
+    /// </summary>
+    private Vector3 ClampMinDistance(Vector3 point, float planeY)
+    {
+        Vector3 playerXZ = LocalPlayer.transform.position;
+        playerXZ.y = 0f;
+ 
+        Vector3 pointXZ = point;
+        pointXZ.y = 0f;
+ 
+        Vector3 offset = pointXZ - playerXZ;
+        float distSqr = offset.sqrMagnitude;
+ 
+        if (distSqr >= minAimDistance * minAimDistance)
+            return point;
+ 
+        // Слишком близко — выталкиваем наружу.
+        // Направление: текущее если есть, иначе forward игрока.
+        Vector3 dir = distSqr > 0.0001f
+            ? offset.normalized
+            : (_lastAimDirXZ.sqrMagnitude > 0.0001f
+                ? _lastAimDirXZ
+                : LocalPlayer.transform.forward);
+ 
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f)
+            dir = Vector3.forward;
+        else
+            dir.Normalize();
+ 
+        Vector3 result = playerXZ + dir * minAimDistance;
+        result.y = planeY;
+        return result;
     }
 
     private Vector3 FallbackAimPoint()

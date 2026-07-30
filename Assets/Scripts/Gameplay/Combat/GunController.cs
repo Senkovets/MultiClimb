@@ -228,49 +228,60 @@ public class GunController : NetworkBehaviour
 
     private void SpawnLocalPredictedTracer(Vector3 dir)
     {
-        bool hitFlesh = false;
-        Vector3 hitNormal = -dir; // fallback
-
         Vector3 start = gunMuzzle.position;
-
         Vector3 end = start + dir * maxDistance;
         float distance = maxDistance;
-
-        if (localTracerUseSpherecast)
+        bool hitFlesh = false;
+        Vector3 hitNormal = -dir;
+ 
+        // SphereCastAll чтобы можно было пропустить собственные коллайдеры
+        RaycastHit[] hits = localTracerUseSpherecast
+            ? Physics.SphereCastAll(start, localTracerRadius, dir, maxDistance,
+                hitLayers, QueryTriggerInteraction.Ignore)
+            : Physics.RaycastAll(start, dir, maxDistance,
+                hitLayers, QueryTriggerInteraction.Ignore);
+ 
+        // Ближайшее попадание которое НЕ является нами
+        float bestDist = float.MaxValue;
+        bool found = false;
+        RaycastHit best = default;
+ 
+        foreach (RaycastHit h in hits)
         {
-            if (Physics.SphereCast(start, localTracerRadius, dir, out RaycastHit hit, maxDistance, hitLayers, QueryTriggerInteraction.Ignore))
+            if (h.collider == null)
+                continue;
+ 
+            // Пропускаем собственное тело
+            if (h.collider.transform.IsChildOf(transform.root))
+                continue;
+ 
+            if (h.distance < bestDist)
             {
-                end = hit.point;
-                distance = hit.distance;
-                hitNormal = hit.normal;
-
-                // Критерий “это игрок”: PlayerHitbox или NetworkHealth/Player в родителях
-                hitFlesh =
-                    hit.collider.GetComponentInParent<NetworkHealth>() != null ||
-                    hit.collider.GetComponentInParent<Player>() != null;
+                bestDist = h.distance;
+                best = h;
+                found = true;
             }
         }
-        else
+ 
+        if (found)
         {
-            if (Physics.Raycast(start, dir, out RaycastHit hit, maxDistance, hitLayers, QueryTriggerInteraction.Ignore))
-            {
-                end = hit.point;
-                distance = hit.distance;
-                hitNormal = hit.normal;
-
-                hitFlesh =
-                    hit.collider.GetComponentInParent<NetworkHealth>() != null ||
-                    hit.collider.GetComponentInParent<Player>() != null;
-            }
+            end = best.point;
+            distance = best.distance;
+            hitNormal = best.normal;
+ 
+            hitFlesh =
+                best.collider.GetComponentInParent<NetworkHealth>() != null ||
+                best.collider.GetComponentInParent<Player>() != null;
         }
-
+ 
         float travelTime = Mathf.Max(0.02f, distance / Mathf.Max(0.001f, bulletSpeed));
-
+ 
         TracerFx fx = Instantiate(tracerPrefab);
         fx.Play(start, end, travelTime);
         fx.SetImpact(hitFlesh, hitNormal);
-
+ 
         shellEmitter.Emit(1);
+ 
         if (muzzleFxPrefab)
             Instantiate(muzzleFxPrefab, muzzle.position, muzzle.rotation, muzzle);
     }
@@ -325,10 +336,15 @@ public class GunController : NetworkBehaviour
 
             if (targetObj != null && targetObj.TryGetComponent(out Player player))
             {
-                if (player.IsDead) // Если попали в того, кто уже мертв
+                bool isSelf = targetObj == Object;
+                bool isDead = player.IsDead;
+ 
+                if (isSelf || isDead)
                 {
-                    // ПЕРЕПИСЫВАЕМ didHit в false, чтобы пуля летела дальше
+                    // Пуля летит дальше: в себя не попадаем,
+                    // в труп не попадаем
                     didHit = false;
+                    targetObj = null;
                     endPoint = origin + dir * maxDistance;
                 }
             }
