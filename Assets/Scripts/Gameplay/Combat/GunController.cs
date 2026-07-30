@@ -175,12 +175,8 @@ public class GunController : NetworkBehaviour
         }
 
         // Dukov-style: направление всегда от ствола
-        Vector3 dir = gunMuzzle.forward;
-        dir.y = 0f; // top-down: держим в плоскости XZ (как у тебя поворот)
-        if (dir.sqrMagnitude < 0.0001f)
+        if (!TryGetFireDirection(input, out Vector3 dir))
             return;
-
-        dir.Normalize();
 
         // === Seed один и тот же для scatter и recoil-pattern ===
         int seed = BuildShotSeed(tick);
@@ -207,6 +203,28 @@ public class GunController : NetworkBehaviour
         AimMarkerManager.Instance?.OnShoot();
     }
 
+    // Направление выстрела: от ствола В точку прицела.
+    // Не зависит от поворота игрока — значит не отстаёт от прицела
+    // и не страдает от бокового смещения ствола.
+    private bool TryGetFireDirection(NetInput input, out Vector3 dir)
+    {
+        dir = Vector3.zero;
+ 
+        if (gunMuzzle == null)
+            return false;
+ 
+        // AimPoint уже на высоте ствола, поэтому raw.y ≈ 0 сам по себе.
+        // Обнуляем явно — на случай если высота плоскости не идеально
+        // совпадает с фактической высотой ствола.
+        Vector3 raw = input.AimPoint - gunMuzzle.position;
+        raw.y = 0f;
+ 
+        if (raw.sqrMagnitude < 0.0001f)
+            return false;
+ 
+        dir = raw.normalized;
+        return true;
+    }
 
     private void SpawnLocalPredictedTracer(Vector3 dir)
     {
@@ -267,13 +285,8 @@ public class GunController : NetworkBehaviour
 
         Vector3 origin = gunMuzzle.position;
 
-        Vector3 dir = gunMuzzle.forward;
-        dir.y = 0f; // top-down
-        if (dir.sqrMagnitude < 0.0001f)
+        if (!TryGetFireDirection(input, out Vector3 dir))
             return;
-
-        dir.Normalize();
-
 
         // Scatter на сервере (тот же seed на этом тике)
         int seed = BuildShotSeed(Runner.Tick);

@@ -86,10 +86,13 @@ public class AimMarkerManager : MonoBehaviour
 
     private GunController FindCurrentGun()
     {
-        Player p = FindObjectOfType<Player>();
+        if (_cachedInput == null)
+            _cachedInput = FindObjectOfType<InputManager>();
+ 
+        Player p = _cachedInput != null ? _cachedInput.LocalPlayer : null;
         if (p == null)
             return null;
-
+ 
         return p.GetComponentInChildren<GunController>(true);
     }
 }
