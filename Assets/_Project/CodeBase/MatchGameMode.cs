@@ -28,7 +28,6 @@ namespace MultiClimb.Match
         [Networked] private Player Winner { get; set; }
         [Networked, OnChangedRender(nameof(GameStateChanged))] private MatchState State { get; set; }
 
-        // ������ ������ ��������
         [Networked] private TickTimer NextRoundTimer { get; set; }
 
         public override void Spawned()
@@ -37,16 +36,11 @@ namespace MultiClimb.Match
             State = MatchState.Waiting;
             NextRoundTimer = TickTimer.None;
 
-            // UI ������ �� ������� �������� � ������ ����� event bus
             GameStateChanged();
 
             Runner.SetIsSimulated(Object, true);
-
-            UIManager.Singleton.Init();
         }
 
-        // ?? ������ �� ����� (����� ���������� ������)
-        // private void OnTriggerEnter(Collider other) { ... }
 
         public override void FixedUpdateNetwork()
         {
@@ -55,21 +49,17 @@ namespace MultiClimb.Match
 
             if (Runner.IsServer)
             {
-                // 1) Waiting -> Playing (������ ����� ����� ready)
                 if (State == MatchState.Waiting)
                 {
-                    // ���� ����� ������ ����-������ � ��� ���
                     if (NextRoundTimer.IsRunning && !NextRoundTimer.ExpiredOrNotRunning(Runner))
                         return;
 
-                    // ����-����� ����� ������
                     if (NextRoundTimer.ExpiredOrNotRunning(Runner) && Winner != null)
                     {
                         StartNewRound();
                         return;
                     }
 
-                    // ������ �����/������ ����� ����� Ready
                     if (Winner == null && ReadySystem.AreAllReady())
                     {
                         StartNewRound();
@@ -77,7 +67,6 @@ namespace MultiClimb.Match
                     }
                 }
 
-                // 2) Playing: �������� win condition �� ������
                 if (State == MatchState.Playing && Winner == null)
                 {
                     foreach (KeyValuePair<PlayerRef, Player> kv in PlayerRegistry.Players)
@@ -87,15 +76,12 @@ namespace MultiClimb.Match
                         {
                             Winner = p;
 
-                            //�������������� ���������� 
                             LeaderboardSystem.Tick();
 
                             State = MatchState.Waiting;
 
-                            // ������� ����������, ����� �� ���� �����-����������
                             ReadySystem.UnreadyAll();
 
-                            // ��������� ����-������� ������
                             NextRoundTimer = TickTimer.CreateFromSeconds(Runner, roundRestartDelay);
                             break;
                         }
@@ -103,7 +89,6 @@ namespace MultiClimb.Match
                 }
             }
 
-            // ��������� ��������� �� ����� ���� (�� �� �����������)
             if (State == MatchState.Playing || (State == MatchState.Waiting && Winner != null))
                 LeaderboardSystem.Tick();
 
@@ -117,17 +102,11 @@ namespace MultiClimb.Match
 
             PreparePlayers();
 
-            // ����� ������/����� �� ����� �����
             foreach (var kv in PlayerRegistry.Players)
             {
                 var p = kv.Value;
                 if (p == null) continue;
 
-                // ������� 1 (���� ���� ������� � ������� ��������):
-                // p.Kills = 0;
-                // p.Score = 0;
-
-                // ������� 2 (����������): ������ ����� � Player
                 p.ResetRoundStats();
             }
         }
@@ -146,7 +125,7 @@ namespace MultiClimb.Match
                 player.Value.Teleport(position, rotation);
                 player.Value.IsCaged = false;
                 player.Value.ResetCooldowns();
-                player.Value.IsReady = false; // �� ������
+                player.Value.IsReady = false; 
             }
         }
     }

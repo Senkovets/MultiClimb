@@ -16,6 +16,17 @@ namespace _Project.CodeBase
 
         public event Action<PlayerRegistry> RegistryReady;
 
+        
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void EnsureExists()
+        {
+            if (Instance != null) return;
+ 
+            var go = new GameObject("[MatchEventBus]");
+            Instance = go.AddComponent<MatchEventBus>();
+            DontDestroyOnLoad(go);
+        }
+        
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -24,6 +35,7 @@ namespace _Project.CodeBase
                 return;
             }
             Instance = this;
+            DontDestroyOnLoad(gameObject);
         }
 
         public void Raise(PlayerDiedEvent e) => PlayerDied?.Invoke(e);

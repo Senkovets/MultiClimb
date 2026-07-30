@@ -47,24 +47,27 @@ public class UIManager : MonoBehaviour
         SelectAbility(AbilityMode.BreakBlock);
     }
 
-    public void Init()
+    private void OnEnable()
     {
-        if (MatchEventBus.Instance != null)
+        if (MatchEventBus.Instance == null)
         {
-            MatchEventBus.Instance.MatchStateChanged += OnMatchStateChanged;
-            MatchEventBus.Instance.LeaderboardChanged += OnLeaderboardChanged;
-            MatchEventBus.Instance.RegistryReady += OnRegistryReady;
+            Debug.LogError("[UIManager] MatchEventBus.Instance is null. " +
+                           "Проверь что MatchEventBus.EnsureExists() работает.");
+            return;
         }
+ 
+        MatchEventBus.Instance.MatchStateChanged  += OnMatchStateChanged;
+        MatchEventBus.Instance.LeaderboardChanged += OnLeaderboardChanged;
+        MatchEventBus.Instance.RegistryReady      += OnRegistryReady;
     }
 
     private void OnDisable()
     {
-        if (MatchEventBus.Instance != null)
-        {
-            MatchEventBus.Instance.MatchStateChanged -= OnMatchStateChanged;
-            MatchEventBus.Instance.LeaderboardChanged -= OnLeaderboardChanged;
-            MatchEventBus.Instance.RegistryReady -= OnRegistryReady;
-        }
+        if (MatchEventBus.Instance == null) return;
+ 
+        MatchEventBus.Instance.MatchStateChanged  -= OnMatchStateChanged;
+        MatchEventBus.Instance.LeaderboardChanged -= OnLeaderboardChanged;
+        MatchEventBus.Instance.RegistryReady      -= OnRegistryReady;
     }
 
     private void Update()

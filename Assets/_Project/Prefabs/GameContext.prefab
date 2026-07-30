@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 3928093234269965198}
   - component: {fileID: 3933259058168366167}
   - component: {fileID: 434490016186122155}
-  - component: {fileID: 4199274894842494311}
+  - component: {fileID: 5750411600751407238}
   m_Layer: 0
   m_Name: GameContext
   m_TagString: Untagged
@@ -60,6 +60,7 @@ MonoBehaviour:
   - {fileID: 3928093234269965198}
   - {fileID: 3933259058168366167}
   - {fileID: 434490016186122155}
+  - {fileID: 5750411600751407238}
 --- !u!114 &8770287768007163118
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -137,7 +138,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   registry: {fileID: 3928093234269965198}
   updateEveryNTicks: 10
---- !u!114 &4199274894842494311
+--- !u!114 &5750411600751407238
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -146,6 +147,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 5464593048714301715}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 84f34fcf9678a2147b2f50d48103c380, type: 3}
+  m_Script: {fileID: 11500000, guid: 1c38c6d1cb7bf474c97904af77f14ffc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  registry: {fileID: 3928093234269965198}
+  spawner: {fileID: 9199477329857616465}
+  respawnDelaySeconds: 5
