@@ -29,8 +29,7 @@ MonoBehaviour:
   RecoilRecoverDelay: 0.1
   RecoilRecoverSpeed: 220
   RecoilPattern: {fileID: 11400000, guid: c06b87c09d4596448b5162a8a7ac2155, type: 2}
-  ViewPrefab: {fileID: 2699496443380309608, guid: 1c08a5f0af7f07d4c9cb73e985b11fa1,
-    type: 3}
+  ViewPrefab: {fileID: 0}
   AimMarker: {fileID: 0}
   PelletsPerShot: 1
   FalloffStartDistance: 15

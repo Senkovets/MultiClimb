@@ -1,3 +1,4 @@
+using _Project.CodeBase.UI;
 using Fusion;
 using UnityEngine;
 
@@ -10,23 +11,52 @@ namespace _Project.CodeBase.Weapons
         [Header("View")]
         [Tooltip("Куда инстанцировать модель оружия")]
         [SerializeField] private Transform weaponViewRoot;
+        
+        /// <summary>Срабатывает при любом изменении инвентаря</summary>
+        public event System.Action Changed;
  
         // ---- Сетевое состояние ----
  
         /// <summary>0 = пистолет, 1 = подобранное</summary>
-        [Networked, OnChangedRender(nameof(OnSlotChanged))]
+        [Networked, OnChangedRender(nameof(OnInventoryChanged))]
         public byte ActiveSlot { get; private set; }
  
         /// <summary>WeaponId в слоте 1. 0 = слот пустой</summary>
-        [Networked, OnChangedRender(nameof(OnSlotChanged))]
+        [Networked, OnChangedRender(nameof(OnInventoryChanged))]
         public byte SecondaryWeaponId { get; private set; }
  
         /// <summary>Патроны в слоте 1</summary>
-        [Networked]
+        [Networked, OnChangedRender(nameof(OnInventoryChanged))] 
         public int SecondaryAmmo { get; private set; }
  
         // ---- Локальное ----
  
+        /// <summary>Конфиг оружия в конкретном слоте. null = слот пуст.</summary>
+        public WeaponConfig GetWeaponInSlot(int slot)
+        {
+            if (slot == 0)
+                return registry.DefaultWeapon;
+ 
+            if (slot == 1)
+                return registry.Get(SecondaryWeaponId);
+ 
+            return null;   // слоты 2-7 пока не используются
+        }
+ 
+        /// <summary>Патроны в слоте. -1 = бесконечные.</summary>
+        public int GetAmmoInSlot(int slot)
+        {
+            WeaponConfig w = GetWeaponInSlot(slot);
+            if (w == null)
+                return 0;
+ 
+            if (w.InfiniteAmmo)
+                return -1;
+ 
+            return slot == 1 ? SecondaryAmmo : 0;
+        }
+        
+        
         private GameObject _currentView;
         private byte _lastViewedWeaponId = 255; // невозможное значение
  
@@ -75,6 +105,16 @@ namespace _Project.CodeBase.Weapons
             }
  
             RefreshView();
+ 
+            // HUD показывает только СВОЁ оружие
+            if (HasInputAuthority)
+                WeaponHudController.Instance?.Bind(this);
+        }
+        
+        public override void Despawned(NetworkRunner runner, bool hasState)
+        {
+            if (HasInputAuthority)
+                WeaponHudController.Instance?.Unbind(this);
         }
  
         public override void FixedUpdateNetwork()
@@ -160,9 +200,10 @@ namespace _Project.CodeBase.Weapons
  
         // ---- Визуал (у всех клиентов) ----
  
-        private void OnSlotChanged()
+        private void OnInventoryChanged()
         {
             RefreshView();
+            Changed?.Invoke();
         }
  
         private void RefreshView()

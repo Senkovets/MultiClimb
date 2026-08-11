@@ -43,6 +43,8 @@ namespace _Project.CodeBase.Weapons
         public RecoilPatternSO RecoilPattern;
  
         [Header("Visual")]
+        [Tooltip("Иконка для слота в HUD")]
+        public Sprite Icon;
         [Tooltip("Модель оружия в руках. Включается при выборе этого слота.")]
         public GameObject ViewPrefab;
  
