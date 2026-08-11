@@ -1,4 +1,5 @@
 ﻿using Fusion;
+using Gameplay.Combat;
 using UnityEngine;
 
 public class NetworkProjectile : NetworkBehaviour

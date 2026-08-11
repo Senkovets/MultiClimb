@@ -1,4 +1,5 @@
 using DG.Tweening;
+using Gameplay.Combat;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,7 +13,7 @@ public class HealthBar : MonoBehaviour
     [Header("Refs")]
     [SerializeField] private Image fill;
     [SerializeField] private Image followFill;   // optional
-    [SerializeField] private Image blinkOverlay; // optional (прозрачная поверх бара)
+    [SerializeField] private Image blinkOverlay; // optional (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ)
 
     [Header("Follow")]
     [SerializeField] private float followDuration = 0.45f;
@@ -106,18 +107,18 @@ public class HealthBar : MonoBehaviour
         }
     }
 
-    // Вызывается из NetworkHealth.OnDamageEvent()
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ NetworkHealth.OnDamageEvent()
     public void PlayDamageFeedback(float damage, bool crit)
     {
         UpdateBar(false);
 
-        // Punch (дергание)
+        // Punch (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
         punchTween?.Kill();
         float p = crit ? punchScale * 1.35f : punchScale;
         float d = crit ? punchDuration * 1.15f : punchDuration;
         punchTween = transform.DOPunchScale(Vector3.one * p, d, vibrato: 10, elasticity: 0.9f);
 
-        // Blink (вспышка)
+        // Blink (пїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
         if (blinkOverlay != null)
         {
             blinkTween?.Kill();

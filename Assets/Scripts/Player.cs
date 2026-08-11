@@ -1,5 +1,6 @@
 using Fusion;
 using Fusion.Addons.KCC;
+using Gameplay.Combat;
 using UnityEngine;
 
 public enum AbilityMode : byte

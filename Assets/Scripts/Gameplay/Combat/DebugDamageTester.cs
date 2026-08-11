@@ -1,4 +1,5 @@
 using Fusion;
+using Gameplay.Combat;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -39,17 +40,17 @@ public class DebugDamageTester : NetworkBehaviour
         if (!health) health = GetComponent<NetworkHealth>();
         if (!health) return;
 
-        // Точка попадания для FX/цифр
+        // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ FX/пїЅпїЅпїЅпїЅ
         Vector3 hitPoint = health.transform.TransformPoint(localHitOffset);
 
-        // Если у тебя StateAuthority здесь — применяем напрямую
+        // пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ StateAuthority пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         if (health.Object != null && health.Object.HasStateAuthority)
         {
             health.ApplyDamage(damage, attacker: null, hitPoint: hitPoint, isCrit: crit);
             return;
         }
 
-        // Иначе — просим StateAuthority применить
+        // пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ StateAuthority пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         RPC_RequestDamage(damage, hitPoint, crit);
     }
 
