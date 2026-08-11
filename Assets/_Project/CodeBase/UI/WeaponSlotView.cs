@@ -12,6 +12,9 @@ namespace _Project.CodeBase.UI
         [SerializeField] private Image icon;
         [SerializeField] private TextMeshProUGUI slotNumberText;
         [SerializeField] private TextMeshProUGUI ammoText;
+        [Tooltip("Родительский объект панели патронов (тот что с фоном). " +
+                 "Включается только когда оружие в руках.")]
+        [SerializeField] private GameObject ammoRoot;
  
         [Header("Colors")]
         [SerializeField] private Color emptyColor    = new Color(1f, 1f, 1f, 0.15f);
@@ -44,10 +47,12 @@ namespace _Project.CodeBase.UI
             if (icon != null)
                 icon.enabled = false;
  
-            if (ammoText != null)
-                ammoText.text = string.Empty;
+            SetAmmoPanelVisible(false);
         }
  
+        /// <summary>
+        /// ammo: -1 = бесконечные, иначе количество
+        /// </summary>
         /// <summary>
         /// ammo: -1 = бесконечные, иначе количество
         /// </summary>
@@ -68,7 +73,26 @@ namespace _Project.CodeBase.UI
                 icon.sprite = weapon.Icon;
             }
  
-            UpdateAmmoText(weapon, ammo);
+            // Патроны показываем только для оружия в руках
+            SetAmmoPanelVisible(isSelected);
+ 
+            if (isSelected)
+                UpdateAmmoText(weapon, ammo);
+        }
+        
+        private void SetAmmoPanelVisible(bool visible)
+        {
+            // Если ammoRoot не назначен — работаем по старому,
+            // просто чистим текст
+            if (ammoRoot == null)
+            {
+                if (!visible && ammoText != null)
+                    ammoText.text = string.Empty;
+ 
+                return;
+            }
+ 
+            ammoRoot.SetActive(visible);
         }
  
         private void UpdateAmmoText(WeaponConfig weapon, int ammo)

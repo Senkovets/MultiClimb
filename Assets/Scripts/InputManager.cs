@@ -147,7 +147,10 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         }
 
         accumulatedInput.Direction = move;
-        accumulatedInput.Buttons = buttons;
+        // Кнопки НАКАПЛИВАЕМ до отправки: если игрок нажал и отпустил
+        // между тиками, нажатие не должно потеряться.
+        accumulatedInput.Buttons = new NetworkButtons(
+            accumulatedInput.Buttons.Bits | buttons.Bits);
         accumulatedInput.DesiredWeaponSlot = desiredWeaponSlot;
     }
 
@@ -348,6 +351,9 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             : Vector3.forward;
 
         input.Set(accumulatedInput);
+        
+        // Накопленные кнопки отправлены — начинаем копить заново
+        resetInput = true;
     }
 
     async void INetworkRunnerCallbacks.OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)

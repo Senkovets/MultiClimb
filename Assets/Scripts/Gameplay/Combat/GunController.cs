@@ -51,6 +51,12 @@ namespace Gameplay.Combat
 
         private readonly List<PendingDamage> _pending = new();
         private int _nextLocalFxTick = -1;
+        /// <summary>
+        /// Локальная копия NextFireTick. Нужна чтобы предсказание
+        /// соблюдало ту же скорострельность что и сервер.
+        /// </summary>
+        private int _localNextFireTick;
+        private byte _lastSeenWeaponId;
 
         private struct PendingDamage
         {
@@ -377,6 +383,13 @@ namespace Gameplay.Combat
             WeaponConfig weapon = Weapon;
             if (weapon == null)
                 return;
+            
+            if (weapon.WeaponId != _lastSeenWeaponId)
+            {
+                _lastSeenWeaponId = weapon.WeaponId;
+                _localNextFireTick = 0;
+                _nextLocalFxTick = -1;
+            }
  
             InputManager im = Runner.GetComponent<InputManager>();
             if (im == null)
@@ -431,30 +444,43 @@ namespace Gameplay.Combat
         private bool ShouldSpawnLocalFxThisTick(WeaponConfig weapon, out int tick)
         {
             tick = Runner.Tick;
-
+ 
+            // Кулдаун — тот же что на сервере.
+            // Без этой проверки быстрые клики рисуют выстрелы,
+            // которые сервер отвергнет.
+            if (tick < _localNextFireTick)
+                return false;
+ 
             if (_nextLocalFxTick < 0)
                 _nextLocalFxTick = tick;
-
+ 
             bool singleShot = weapon.FireMode == FireMode.Semi
-                           || weapon.FireMode == FireMode.Bolt;
-
+                              || weapon.FireMode == FireMode.Bolt;
+ 
             if (singleShot)
             {
+                // Один выстрел на одно нажатие
                 if (tick != _nextLocalFxTick)
                     return false;
-
-                // Больше не стреляем пока кнопку не отпустят
+ 
                 _nextLocalFxTick = int.MaxValue;
-                return true;
             }
-
-            if (tick < _nextLocalFxTick)
-                return false;
-
-            _nextLocalFxTick = tick + CooldownTicks;
+            else
+            {
+                if (tick < _nextLocalFxTick)
+                    return false;
+ 
+                _nextLocalFxTick = tick + CooldownTicks;
+            }
+ 
+            // Взводим локальный кулдаун ровно как сервер
+            _localNextFireTick = tick + CooldownTicks;
+ 
+            if (weapon.FireMode == FireMode.Bolt)
+                _localNextFireTick += weapon.BoltReloadTicks;
+ 
             return true;
         }
-
         private void ApplyRecoil(WeaponConfig weapon, int seed)
         {
             if (recoilPattern == null)
