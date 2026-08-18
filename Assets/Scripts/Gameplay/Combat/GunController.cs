@@ -1,6 +1,7 @@
 ﻿using Fusion;
 using System;
 using System.Collections.Generic;
+using _Project.CodeBase.Movement;
 using _Project.CodeBase.Weapons;
 using UnityEngine;
 
@@ -15,6 +16,7 @@ namespace Gameplay.Combat
     {
         [Header("Owner")]
         [SerializeField] private Player player;
+        [SerializeField] private PlayerLocomotion locomotion;
 
         [Tooltip("Источник характеристик оружия и патронов")]
         [SerializeField] private WeaponInventory inventory;
@@ -155,6 +157,8 @@ namespace Gameplay.Combat
             if (!inventory.HasAmmoForCurrent)
                 return;
 
+            if (locomotion != null && !locomotion.CanFire) return;
+            
             FireHitscan_Server(input, weapon);
             inventory.ConsumeAmmo(1);
 
@@ -390,6 +394,8 @@ namespace Gameplay.Combat
             if (Runner == null || tracerPrefab == null || gunMuzzle == null)
                 return;
  
+            if (locomotion != null && !locomotion.CanFire) return;
+            
             WeaponConfig weapon = Weapon;
             if (weapon == null)
                 return;

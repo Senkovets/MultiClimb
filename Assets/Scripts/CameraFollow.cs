@@ -20,8 +20,6 @@ public class CameraFollow : MonoBehaviour
     }
     private static CameraFollow _singleton;
 
-    [SerializeField] private Highlighter highlighter;
-
     private Transform target;
     private Player player;
 
@@ -48,18 +46,15 @@ public class CameraFollow : MonoBehaviour
     {
         if (target != null)
         {
-            // Позиция камеры: выше и чуть сзади target
-            Vector3 cameraPosition = target.position + new Vector3(0, 8, -6); // y=8 — высота, z=-6 — отступ назад
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ target
+            Vector3 cameraPosition = target.position + new Vector3(0, 8, -6); // y=8 пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, z=-6 пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
 
-            // Устанавливаем позицию камеры
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             transform.position = cameraPosition;
 
-            // Направляем камеру в точку на уровне талии target (чуть ниже головы)
-            Vector3 lookAtPoint = target.position + new Vector3(0, 1, 0); // y=1 — смещение вниз от центра target
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ target (пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ)
+            Vector3 lookAtPoint = target.position + new Vector3(0, 1, 0); // y=1 пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ target
             transform.LookAt(lookAtPoint);
-
-            // Обновляем highlighter
-            highlighter.UpdateHighlightable(transform.position, transform.forward, player);
         }
     }
 

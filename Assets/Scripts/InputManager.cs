@@ -23,10 +23,6 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     [Tooltip("Отступ чтобы маркер не упирался в край экрана")]
     [SerializeField] private float aimClampPadding = 10f;
 
-    [Header("Rotation")]
-    [Tooltip("Ограничение скорости поворота персонажа, град/сек")]
-    [SerializeField] private float maxYawSpeedDegPerSec = 240f;
-
     [Header("Aim Plane")]
     [Tooltip("Высота прицельной плоскости над позицией игрока. " +
              "ДОЛЖНА совпадать с высотой ствола, иначе пули уйдут мимо прицела.")]
@@ -45,7 +41,6 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     private bool resetInput;
     private AbilityMode selectedAbility;
 
-    private float _lastYaw;
     private Vector3 _lastAimDirXZ = Vector3.forward;
     
     [Header("DEBUG — удалить когда будут пикапы")]
@@ -119,13 +114,13 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         {
             buttons.Set((int)InputButton.Fire, mouse.leftButton.isPressed);
             buttons.Set((int)InputButton.UseAbility, mouse.leftButton.isPressed);
-            buttons.Set((int)InputButton.Grapple, mouse.rightButton.isPressed);
+            buttons.Set((int)InputButton.Aim, mouse.rightButton.isPressed);
         }
         else
         {
             buttons.Set((int)InputButton.Fire, Input.GetMouseButton(0));
             buttons.Set((int)InputButton.UseAbility, Input.GetMouseButton(0));
-            buttons.Set((int)InputButton.Grapple, Input.GetMouseButton(1));
+            buttons.Set((int)InputButton.Aim, Input.GetMouseButton(1));
         }
 
         if (keyboard != null)
@@ -135,8 +130,8 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             if (keyboard.aKey.isPressed) move += Vector2.left;
             if (keyboard.dKey.isPressed) move += Vector2.right;
 
-            buttons.Set((int)InputButton.Jump, keyboard.spaceKey.isPressed);
-            buttons.Set((int)InputButton.Glide, keyboard.leftShiftKey.isPressed);
+            buttons.Set((int)InputButton.Roll, keyboard.spaceKey.isPressed);
+            buttons.Set((int)InputButton.Sprint, keyboard.leftShiftKey.isPressed);
             buttons.Set((int)InputButton.Reload, keyboard.rKey.isPressed);
 
             if (keyboard.rKey.wasPressedThisFrame && LocalPlayer != null)
@@ -273,17 +268,12 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 
             dirXZ.y = 0f;
             dirXZ = dirXZ.sqrMagnitude < 0.0001f ? Vector3.forward : dirXZ.normalized;
-
-            targetYaw = _lastYaw;
         }
         else
         {
             dirXZ = raw.normalized;
             targetYaw = Mathf.Atan2(dirXZ.x, dirXZ.z) * Mathf.Rad2Deg;
         }
-
-        ApplyYawWithSpeedLimit(targetYaw);
-
         accumulatedInput.AimDirection = dirXZ;
 
         // ВАЖНО: AimDirection3D должен присваиваться — его читает Player
@@ -296,23 +286,7 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         Debug.DrawRay(LocalPlayer.transform.position, dirXZ * 3f, Color.cyan);
     }
 
-    private void ApplyYawWithSpeedLimit(float targetYaw)
-    {
-        float dt = Time.deltaTime;
-
-        if (dt <= 0f)
-        {
-            accumulatedInput.LookYaw = targetYaw;
-            _lastYaw = targetYaw;
-            return;
-        }
-
-        float maxStep = maxYawSpeedDegPerSec * dt;
-        float newYaw = Mathf.MoveTowardsAngle(_lastYaw, targetYaw, maxStep);
-
-        accumulatedInput.LookYaw = newYaw;
-        _lastYaw = newYaw;
-    }
+    
 
     private bool IsAimingAtHead()
     {

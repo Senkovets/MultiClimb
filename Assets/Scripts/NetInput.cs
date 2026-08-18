@@ -8,7 +8,10 @@ public enum InputButton
     Grapple,
     Glide,
     Fire,
-    Reload
+    Reload,
+    Aim,
+    Sprint, 
+    Roll
 }
 
 public struct NetInput : INetworkInput

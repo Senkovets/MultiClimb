@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af16bd1889121384392e2b8e7aeb071d, type: 3}
+  m_Name: PlayerLocomotion_Default
+  m_EditorClassIdentifier: 
+  SprintSpeed: 7.5
+  WalkSpeed: 4.5
+  AimSpeedMultiplier: 0.55
+  WalkTurnSpeed: 900
+  SprintTurnSpeed: 540
+  ReturnTurnSpeed: 700
+  AimTurnSpeed: 1200
+  ReturnDuration: 0.35
+  SprintMinInput: 0.5
+  BlockFireWhileSprinting: 1
+  RollImpulse: 14
+  RollDuration: 0.4
+  RollCooldown: 1.2

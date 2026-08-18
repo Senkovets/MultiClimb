@@ -123,8 +123,6 @@ namespace MultiClimb.Match
             {
                 PlayerSpawner.GetRandomSpawn(out Vector3 position, out Quaternion rotation);
                 player.Value.Teleport(position, rotation);
-                player.Value.IsCaged = false;
-                player.Value.ResetCooldowns();
                 player.Value.IsReady = false; 
             }
         }

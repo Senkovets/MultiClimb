@@ -70,20 +70,6 @@ public class UIManager : MonoBehaviour
         MatchEventBus.Instance.RegistryReady      -= OnRegistryReady;
     }
 
-    private void Update()
-    {
-        if (LocalPlayer == null) return;
-
-        breakCD.value = LocalPlayer.BreakCDFactor;
-        cageCD.value = LocalPlayer.CageCDFactor;
-        shoveCD.value = LocalPlayer.ShoveCDFactor;
-        grappleCD.value = LocalPlayer.GrappleCDFactor;
-        doubleJumpCD.value = LocalPlayer.DoubleJumpCDFactor;
-
-        glideActive.enabled = LocalPlayer.IsGliding;
-        glideCD.value = LocalPlayer.IsGliding ? LocalPlayer.GlideCharge : LocalPlayer.GlideCDFactor;
-    }
-
     private void OnMatchStateChanged(MatchStateChangedEvent e)
     {
         Player winner = null;
