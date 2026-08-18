@@ -30,10 +30,12 @@ MonoBehaviour:
   RecoilRecoverSpeed: 220
   RecoilPattern: {fileID: 0}
   Icon: {fileID: 21300000, guid: d27193161b0f1184da24dbfc430e9a82, type: 2}
-  ViewPrefab: {fileID: 0}
+  ViewPrefab: {fileID: 1225324203698367, guid: 139df70a37674e64082666b701e450e5, type: 3}
   AimMarker: {fileID: 0}
   PelletsPerShot: 1
   FalloffStartDistance: 999
   FalloffEndDistance: 1000
   DamageAtMaxRange: 85
   CriticalMultiplier: 2.4
+  PickupPrefab: {fileID: 1225324203698367, guid: 139df70a37674e64082666b701e450e5,
+    type: 3}

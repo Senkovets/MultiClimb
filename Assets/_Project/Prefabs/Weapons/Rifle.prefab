@@ -73,7 +73,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4187255439156723}
   m_Layer: 0
-  m_Name: Pistol
+  m_Name: Rifle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -158,7 +158,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 6f89bc1bda9618845b91141f7ae89e0c, type: 2}
+  - {fileID: 2100000, guid: a2f6a79f86207364b8a0155cc2b2cb29, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

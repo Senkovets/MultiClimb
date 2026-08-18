@@ -71,6 +71,10 @@ namespace _Project.CodeBase.Weapons
         [Tooltip("Множитель урона при попадании в голову")]
         public float CriticalMultiplier = 2f;
         
+        [Header("Visual")]
+        [Tooltip("Модель для точки лута. Если пусто — берётся ViewPrefab.")]
+        public GameObject PickupPrefab;
+        
         /// <summary>
         /// Урон с учётом дистанции. Считается ТОЛЬКО на сервере,
         /// поэтому детерминизм не требуется.
