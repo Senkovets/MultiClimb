@@ -27,44 +27,24 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     [Tooltip("Высота прицельной плоскости над позицией игрока. " +
              "ДОЛЖНА совпадать с высотой ствола, иначе пули уйдут мимо прицела.")]
     [SerializeField] private float aimPlaneHeight = 1.2f;
-    
+
     [Tooltip("Минимальное расстояние от игрока до точки прицела. " +
-             "Не даёт пулям вылетать под углом когда прицел вплотную. " +
-             "Ставь 2 - 3 метра.")]
+             "Не даёт пулям вылетать под углом когда прицел вплотную.")]
     [SerializeField] private float minAimDistance = 2.5f;
 
-    private byte desiredWeaponSlot = 0;
+    [Header("DEBUG — удалить когда будут пикапы")]
+    [SerializeField] private bool debugWeaponKeys = true;
 
     public NetInput LastLocalInput { get; private set; }
 
     private NetInput accumulatedInput;
-    private bool resetInput;
-    private AbilityMode selectedAbility;
-
+    private byte desiredWeaponSlot;
     private Vector3 _lastAimDirXZ = Vector3.forward;
-    
-    [Header("DEBUG — удалить когда будут пикапы")]
-    [SerializeField] private bool debugWeaponKeys = true;
 
     private void Start()
     {
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Confined;
-    }
-    
-    private void ReadDebugWeaponKeys(Keyboard keyboard)
-    {
-        if (!debugWeaponKeys || LocalPlayer == null)
-            return;
- 
-        var inv = LocalPlayer.GetComponent<WeaponInventory>();
-        if (inv == null)
-            return;
- 
-        if (keyboard.f1Key.wasPressedThisFrame) inv.RPC_DebugGiveWeapon(1);
-        if (keyboard.f2Key.wasPressedThisFrame) inv.RPC_DebugGiveWeapon(2);
-        if (keyboard.f3Key.wasPressedThisFrame) inv.RPC_DebugGiveWeapon(3);
-        if (keyboard.f4Key.wasPressedThisFrame) inv.RPC_DebugGiveWeapon(4);
     }
 
     // =============================================================
@@ -73,11 +53,13 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 
     void IBeforeUpdate.BeforeUpdate()
     {
-        if (resetInput)
-        {
-            resetInput = false;
-            accumulatedInput = default;
-        }
+        // Кнопки НЕ обнуляем здесь — они копятся до отправки в OnInput
+        // и сбрасываются там же, сразу после input.Set().
+        //
+        // Обнулять по флагу нельзя: BeforeUpdate идёт на частоте кадров
+        // (144 Гц), а OnInput на частоте тиков (60 Гц). Между сбросами
+        // проходит несколько кадров, и отпускание кнопки тонет в OR —
+        // бит залипает навсегда.
 
         ReadButtonsAndMovement();
         UpdateAimMarker();
@@ -91,7 +73,7 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             return;
         }
 
-        UpdateAimDirectionAndYaw(accumulatedInput.AimPoint);
+        UpdateAimDirection(accumulatedInput.AimPoint);
 
         accumulatedInput.IsCriticalAim = IsAimingAtHead();
 
@@ -104,49 +86,66 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
 
     private void ReadButtonsAndMovement()
     {
-        Mouse mouse = Mouse.current;
-        Keyboard keyboard = Keyboard.current;
-
         NetworkButtons buttons = default;
         Vector2 move = Vector2.zero;
 
-        if (mouse != null)
-        {
-            buttons.Set((int)InputButton.Fire, mouse.leftButton.isPressed);
-            buttons.Set((int)InputButton.UseAbility, mouse.leftButton.isPressed);
-            buttons.Set((int)InputButton.Aim, mouse.rightButton.isPressed);
-        }
-        else
+        ReadMouse(ref buttons);
+        ReadKeyboard(ref buttons, ref move);
+
+        accumulatedInput.Direction = move;
+        accumulatedInput.DesiredWeaponSlot = desiredWeaponSlot;
+
+        // Накапливаем: нажатие между тиками не должно потеряться.
+        // Сброс — в OnInput, сразу после отправки.
+        accumulatedInput.Buttons = new NetworkButtons(
+            accumulatedInput.Buttons.Bits | buttons.Bits);
+    }
+
+    private void ReadMouse(ref NetworkButtons buttons)
+    {
+        Mouse mouse = Mouse.current;
+
+        if (mouse == null)
         {
             buttons.Set((int)InputButton.Fire, Input.GetMouseButton(0));
             buttons.Set((int)InputButton.UseAbility, Input.GetMouseButton(0));
             buttons.Set((int)InputButton.Aim, Input.GetMouseButton(1));
+            return;
         }
 
-        if (keyboard != null)
-        {
-            if (keyboard.wKey.isPressed) move += Vector2.up;
-            if (keyboard.sKey.isPressed) move += Vector2.down;
-            if (keyboard.aKey.isPressed) move += Vector2.left;
-            if (keyboard.dKey.isPressed) move += Vector2.right;
+        // isPressed держит бит при удержании,
+        // wasPressedThisFrame ловит клик который случился и закончился
+        // между двумя тиками
+        bool fire = mouse.leftButton.isPressed || mouse.leftButton.wasPressedThisFrame;
 
-            buttons.Set((int)InputButton.Roll, keyboard.spaceKey.isPressed);
-            buttons.Set((int)InputButton.Sprint, keyboard.leftShiftKey.isPressed);
-            buttons.Set((int)InputButton.Reload, keyboard.rKey.isPressed);
+        buttons.Set((int)InputButton.Fire, fire);
+        buttons.Set((int)InputButton.UseAbility, fire);
+        buttons.Set((int)InputButton.Aim, mouse.rightButton.isPressed);
+    }
 
-            if (keyboard.rKey.wasPressedThisFrame && LocalPlayer != null)
-                LocalPlayer.RPC_SetReady();
+    private void ReadKeyboard(ref NetworkButtons buttons, ref Vector2 move)
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+            return;
 
-            ReadDebugWeaponKeys(keyboard);
-            ReadWeaponSwitch(keyboard);
-        }
+        if (keyboard.wKey.isPressed) move += Vector2.up;
+        if (keyboard.sKey.isPressed) move += Vector2.down;
+        if (keyboard.aKey.isPressed) move += Vector2.left;
+        if (keyboard.dKey.isPressed) move += Vector2.right;
 
-        accumulatedInput.Direction = move;
-        // Кнопки НАКАПЛИВАЕМ до отправки: если игрок нажал и отпустил
-        // между тиками, нажатие не должно потеряться.
-        accumulatedInput.Buttons = new NetworkButtons(
-            accumulatedInput.Buttons.Bits | buttons.Bits);
-        accumulatedInput.DesiredWeaponSlot = desiredWeaponSlot;
+        // Перекат — одиночное событие, только wasPressedThisFrame.
+        // С isPressed зажатый пробел давал бы перекат за перекатом.
+        buttons.Set((int)InputButton.Roll, keyboard.spaceKey.wasPressedThisFrame);
+
+        buttons.Set((int)InputButton.Sprint, keyboard.leftShiftKey.isPressed);
+        buttons.Set((int)InputButton.Reload, keyboard.rKey.isPressed);
+
+        if (keyboard.rKey.wasPressedThisFrame && LocalPlayer != null)
+            LocalPlayer.RPC_SetReady();
+
+        ReadWeaponSwitch(keyboard);
+        ReadDebugWeaponKeys(keyboard);
     }
 
     private void ReadWeaponSwitch(Keyboard keyboard)
@@ -157,10 +156,19 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             desiredWeaponSlot = 1;
     }
 
-    private void SetAbility(AbilityMode mode)
+    private void ReadDebugWeaponKeys(Keyboard keyboard)
     {
-        selectedAbility = mode;
-        UIManager.Singleton?.SelectAbility(mode);
+        if (!debugWeaponKeys || LocalPlayer == null)
+            return;
+
+        var inv = LocalPlayer.GetComponent<WeaponInventory>();
+        if (inv == null)
+            return;
+
+        if (keyboard.f1Key.wasPressedThisFrame) inv.RPC_DebugGiveWeapon(1);
+        if (keyboard.f2Key.wasPressedThisFrame) inv.RPC_DebugGiveWeapon(2);
+        if (keyboard.f3Key.wasPressedThisFrame) inv.RPC_DebugGiveWeapon(3);
+        if (keyboard.f4Key.wasPressedThisFrame) inv.RPC_DebugGiveWeapon(4);
     }
 
     // =============================================================
@@ -187,23 +195,23 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     {
         if (LocalPlayer == null)
             return Vector3.zero;
- 
+
         Camera cam = Camera.main;
         if (cam == null)
             return FallbackAimPoint();
- 
+
         Ray ray = cam.ScreenPointToRay(RecoilController.GetAimScreenPosition());
- 
+
         float planeY = LocalPlayer.transform.position.y + aimPlaneHeight;
         Plane aimPlane = new Plane(Vector3.up, new Vector3(0f, planeY, 0f));
- 
+
         Vector3 point = aimPlane.Raycast(ray, out float enter)
             ? ray.GetPoint(enter)
             : FallbackAimPoint();
- 
+
         return ClampMinDistance(point, planeY);
     }
-    
+
     /// <summary>
     /// Выталкивает точку прицела наружу если она слишком близко к игроку.
     /// Без этого направление выстрела становится непредсказуемым
@@ -213,30 +221,25 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     {
         Vector3 playerXZ = LocalPlayer.transform.position;
         playerXZ.y = 0f;
- 
+
         Vector3 pointXZ = point;
         pointXZ.y = 0f;
- 
+
         Vector3 offset = pointXZ - playerXZ;
         float distSqr = offset.sqrMagnitude;
- 
+
         if (distSqr >= minAimDistance * minAimDistance)
             return point;
- 
-        // Слишком близко — выталкиваем наружу.
-        // Направление: текущее если есть, иначе forward игрока.
+
         Vector3 dir = distSqr > 0.0001f
             ? offset.normalized
             : (_lastAimDirXZ.sqrMagnitude > 0.0001f
                 ? _lastAimDirXZ
                 : LocalPlayer.transform.forward);
- 
+
         dir.y = 0f;
-        if (dir.sqrMagnitude < 0.0001f)
-            dir = Vector3.forward;
-        else
-            dir.Normalize();
- 
+        dir = dir.sqrMagnitude < 0.0001f ? Vector3.forward : dir.normalized;
+
         Vector3 result = playerXZ + dir * minAimDistance;
         result.y = planeY;
         return result;
@@ -249,15 +252,15 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
     }
 
     /// <summary>
-    /// Считает направление прицела в плоскости XZ и целевой yaw персонажа.
+    /// Направление прицела в плоскости XZ. Сглаживания нет —
+    /// PlayerLocomotion сам решает как быстро поворачивать корпус.
     /// </summary>
-    private void UpdateAimDirectionAndYaw(Vector3 aimPoint)
+    private void UpdateAimDirection(Vector3 aimPoint)
     {
         Vector3 raw = aimPoint - LocalPlayer.transform.position;
         raw.y = 0f;
 
         Vector3 dirXZ;
-        float targetYaw;
 
         if (raw.sqrMagnitude < 0.000001f)
         {
@@ -272,21 +275,13 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         else
         {
             dirXZ = raw.normalized;
-            targetYaw = Mathf.Atan2(dirXZ.x, dirXZ.z) * Mathf.Rad2Deg;
         }
-        accumulatedInput.AimDirection = dirXZ;
 
-        // ВАЖНО: AimDirection3D должен присваиваться — его читает Player
-        // для поворота модели. Так как стрельба горизонтальная,
-        // он совпадает с dirXZ.
+        accumulatedInput.AimDirection = dirXZ;
         accumulatedInput.AimDirection3D = dirXZ;
 
         _lastAimDirXZ = dirXZ;
-
-        Debug.DrawRay(LocalPlayer.transform.position, dirXZ * 3f, Color.cyan);
     }
-
-    
 
     private bool IsAimingAtHead()
     {
@@ -315,8 +310,6 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
         if (accumulatedInput.Direction.sqrMagnitude > 1f)
             accumulatedInput.Direction.Normalize();
 
-        // Нормализуем направление, но yaw НЕ пересчитываем —
-        // он уже посчитан в BeforeUpdate с ограничением скорости
         Vector3 dXZ = accumulatedInput.AimDirection;
         dXZ.y = 0f;
 
@@ -325,9 +318,11 @@ public class InputManager : SimulationBehaviour, IBeforeUpdate, INetworkRunnerCa
             : Vector3.forward;
 
         input.Set(accumulatedInput);
-        
-        // Накопленные кнопки отправлены — начинаем копить заново
-        resetInput = true;
+
+        // Сброс НЕМЕДЛЕННО, а не через флаг на следующий кадр.
+        // Иначе бит остаётся установленным лишние кадры, отпускание
+        // кнопки теряется, и WasPressed для Semi/Bolt перестаёт работать.
+        accumulatedInput.Buttons = default;
     }
 
     async void INetworkRunnerCallbacks.OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)

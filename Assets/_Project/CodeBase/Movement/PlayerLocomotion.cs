@@ -40,6 +40,12 @@ namespace _Project.CodeBase.Movement
         // ---- Local ----
  
         private bool _yawInitialized;
+        
+        /// <summary>
+        /// Сглаженное направление движения. Именно оно идёт в KCC,
+        /// а не сырой ввод — отсюда инерция.
+        /// </summary>
+        [Networked] private Vector3 SmoothedMoveDir { get; set; }
  
         public bool IsSprinting => State == MoveState.Sprinting;
         public bool IsRolling => State == MoveState.Rolling;
@@ -97,8 +103,9 @@ namespace _Project.CodeBase.Movement
  
             UpdateState(input);
             UpdateAimYaw(input, dt);
+            UpdateMovement(input, dt);
             UpdateBodyYaw(input, dt);
-            UpdateMovement(input);
+            
  
             PreviousButtons = input.Buttons;
         }
@@ -119,7 +126,7 @@ namespace _Project.CodeBase.Movement
                 return;
  
             bool wantsSprint = input.Buttons.IsSet((int)InputButton.Sprint);
-            bool hasInput = input.Direction.magnitude >= config.SprintMinInput;
+            bool hasInput = input.Direction.magnitude >= config.SprintMinInput && SmoothedMoveDir.magnitude > 0.1f;
  
             bool wasSprinting = State == MoveState.Sprinting;
             bool nowSprinting = wantsSprint && hasInput;
@@ -199,7 +206,7 @@ namespace _Project.CodeBase.Movement
                 return;
             }
  
-            Vector3 moveDir = InputToWorld(input.Direction);
+            Vector3 moveDir = SmoothedMoveDir;
             bool isAiming = input.Buttons.IsSet((int)InputButton.Aim);
  
             float targetYaw;
@@ -238,24 +245,67 @@ namespace _Project.CodeBase.Movement
  
         // ---- Движение ----
  
-        private void UpdateMovement(NetInput input)
+        private void UpdateMovement(NetInput input, float dt)
         {
             if (State == MoveState.Rolling)
             {
-                // Импульс уже выдан, управления в перекате нет
+                SmoothedMoveDir = Vector3.zero;
                 kcc.SetInputDirection(Vector3.zero);
                 return;
             }
- 
-            Vector3 moveDir = InputToWorld(input.Direction);
- 
-            // ХИТРОСТЬ: KCC берёт скорость из KinematicSpeed процессора,
-            // а магнитуда InputDirection работает множителем.
-            // Ставим KinematicSpeed = SprintSpeed, а ходьбу получаем
-            // уменьшением магнитуды. Так не нужно лезть в процессор.
+
+            Vector3 rawDir = InputToWorld(input.Direction);
             float multiplier = GetSpeedMultiplier(input);
- 
-            kcc.SetInputDirection(moveDir * multiplier);
+
+            Vector3 target = rawDir * multiplier;
+            target *= GetTurnPenalty(rawDir);
+
+            bool accelerating = target.sqrMagnitude > SmoothedMoveDir.sqrMagnitude;
+
+            float time = accelerating
+                ? config.AccelerationTime
+                : config.DecelerationTime;
+
+            if (State == MoveState.Sprinting)
+                time /= Mathf.Max(0.01f, config.SprintTurnInertia);
+
+            float t = time > 0.001f
+                ? 1f - Mathf.Exp(-dt / time)
+                : 1f;
+
+            SmoothedMoveDir = Vector3.Lerp(SmoothedMoveDir, target, t);
+
+            // Обнуляем ТОЛЬКО когда игрок отпустил клавиши.
+            // Порог по одной лишь магнитуде убивал разгон: при прицеливании
+            // первый шаг меньше порога, движение не могло начаться.
+            if (target.sqrMagnitude < 0.0001f && SmoothedMoveDir.sqrMagnitude < 0.0004f)
+                SmoothedMoveDir = Vector3.zero;
+            // ↑↑↑ КОНЕЦ ИЗМЕНЕНИЯ ↑↑↑
+
+            kcc.SetInputDirection(SmoothedMoveDir);
+        }
+
+        /// <summary>
+        /// Чем сильнее игрок меняет направление на бегу, тем больше
+        /// теряет скорость. Разворот назад бьёт сильнее всего.
+        /// </summary>
+        private float GetTurnPenalty(Vector3 rawDir)
+        {
+            if (State != MoveState.Sprinting)
+                return 1f;
+
+            // Оба вектора должны быть ненулевыми, иначе normalized даст NaN
+            if (rawDir.sqrMagnitude < 0.01f || SmoothedMoveDir.sqrMagnitude < 0.01f)
+                return 1f;
+
+            // 1 = бежим прямо, 0 = поворот на 90, -1 = разворот назад
+            float alignment = Vector3.Dot(
+                SmoothedMoveDir.normalized, rawDir.normalized);
+
+            // alignment -1..1 → t 0..1
+            float t = (alignment + 1f) * 0.5f;
+
+            return Mathf.Lerp(config.MinTurnSpeedPenalty, 1f, t);
         }
  
         private float GetSpeedMultiplier(NetInput input)

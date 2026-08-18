@@ -3,10 +3,7 @@ using UnityEngine;
 
 public enum InputButton
 {
-    Jump,
     UseAbility,
-    Grapple,
-    Glide,
     Fire,
     Reload,
     Aim,

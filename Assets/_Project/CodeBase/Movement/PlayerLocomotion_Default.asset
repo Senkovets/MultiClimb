@@ -15,9 +15,9 @@ MonoBehaviour:
   SprintSpeed: 7.5
   WalkSpeed: 4.5
   AimSpeedMultiplier: 0.55
-  WalkTurnSpeed: 900
-  SprintTurnSpeed: 540
-  ReturnTurnSpeed: 700
+  WalkTurnSpeed: 720
+  SprintTurnSpeed: 560
+  ReturnTurnSpeed: 500
   AimTurnSpeed: 1200
   ReturnDuration: 0.35
   SprintMinInput: 0.5
@@ -25,3 +25,6 @@ MonoBehaviour:
   RollImpulse: 14
   RollDuration: 0.4
   RollCooldown: 1.2
+  AccelerationTime: 0.25
+  DecelerationTime: 0.15
+  SprintTurnInertia: 1

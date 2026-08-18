@@ -130,7 +130,6 @@ namespace Gameplay.Combat
         {
             if (!HasStateAuthority)
                 return;
-
             // Отложенный урон обрабатываем всегда, даже если игрок мёртв:
             // пули выпущенные до смерти должны долететь.
             ProcessPendingDamage();
@@ -142,6 +141,13 @@ namespace Gameplay.Combat
                 return;
 
             WeaponConfig weapon = Weapon;
+            
+            WeaponConfig dbgWeapon = Weapon;
+
+            if (input.Buttons.Bits != 0)
+                Debug.Log($"[Server] bits={input.Buttons.Bits} " +
+                          $"fire={input.Buttons.IsSet((int)InputButton.Fire)}");
+            
             if (weapon == null)
                 return;
 
