@@ -1091,10 +1091,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 100
   startingArmor: 100
-  _CurrentHealth: 0
-  _CurrentArmor: 0
+  popupStagger: 0.03
   healthBar: {fileID: 2501854580681593690}
   armorBar: {fileID: 8045898716429771072}
+  _CurrentHealth: 0
+  _CurrentArmor: 0
 --- !u!114 &3566420544698327676
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1111,9 +1112,9 @@ MonoBehaviour:
     type: 3}
   lifeTime: 0.9
   rise: 0.9
-  spreadXZ: 0.25
-  baseYOffset: 1
-  randomYOffset: 0.24
+  spreadXZ: 1
+  baseYOffset: 2.5
+  randomYOffset: 0.5
 --- !u!114 &7609597933554125995
 MonoBehaviour:
   m_ObjectHideFlags: 0

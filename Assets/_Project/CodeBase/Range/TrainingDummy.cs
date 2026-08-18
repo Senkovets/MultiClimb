@@ -26,6 +26,9 @@ namespace _Project.CodeBase.Range
         [SerializeField] private GameObject deathFxPrefab;
         [SerializeField] private GameObject respawnFxPrefab;
  
+        [Networked] private Vector3 SpawnPosition { get; set; }
+        [Networked] private Quaternion SpawnRotation { get; set; }
+        
         /// <summary>Мёртв ли манекен. Синхронизируется всем.</summary>
         [Networked, OnChangedRender(nameof(OnDownStateChanged))]
         public bool IsDown { get; private set; }
@@ -37,13 +40,22 @@ namespace _Project.CodeBase.Range
         public override void Spawned()
         {
             _health = GetComponent<NetworkHealth>();
- 
+
             if (HasStateAuthority)
             {
+                // Хост записывает где стоит — один раз
+                SpawnPosition = transform.position;
+                SpawnRotation = transform.rotation;
+
                 IsDown = false;
                 RespawnTimer = TickTimer.None;
             }
- 
+            else
+            {
+                // Клиент применяет
+                transform.SetPositionAndRotation(SpawnPosition, SpawnRotation);
+            }
+
             ApplyDownState(IsDown);
         }
  

@@ -2,68 +2,119 @@ using DG.Tweening;
 using TMPro;
 using UnityEngine;
 
-public class DamagePopupSpawner : MonoBehaviour
+namespace Gameplay.Combat
 {
-    [Header("Prefab")]
-    [SerializeField] private TMP_Text popupPrefab;
-
-    [Header("Lifetime")]
-    [SerializeField] private float lifeTime = 0.9f;
-    [SerializeField] private float rise = 0.9f;
-
-    [Header("Spread")]
-    [SerializeField] private float spreadXZ = 0.25f;
-
-    [Header("Vertical Offset")]
-    [SerializeField] private float baseYOffset = 1f;        // ������� �������� �����
-    [SerializeField] private float randomYOffset = 0.24f;     // ��������� Y
-    public void Pop(float damage, Vector3 worldPoint, bool crit)
+    public class DamagePopupSpawner : MonoBehaviour
     {
-        if (!popupPrefab) return;
+        [Header("Prefab")]
+        [SerializeField] private TMP_Text popupPrefab;
 
-        TMP_Text t = Instantiate(popupPrefab);
+        [Header("Lifetime")]
+        [SerializeField] private float lifeTime = 0.9f;
+        [SerializeField] private float rise = 0.9f;
 
-        t.text = damage.ToString("0");
+        [Header("Spread")]
+        [Tooltip("Разлёт цифр по горизонтали. Для дробовика ставь " +
+                 "0.5 и больше, иначе девять цифр наложатся друг на друга.")]
+        [SerializeField] private float spreadXZ = 0.25f;
 
-        // --- ��������� ������� ---
-        float yOffset =
-            baseYOffset +
-            Random.Range(0f, randomYOffset);
+        [Header("Vertical Offset")]
+        [Tooltip("Базовый подъём цифры над точкой попадания")]
+        [SerializeField] private float baseYOffset = 1f;
 
-        Vector3 start = worldPoint + Vector3.up * yOffset;
+        [Tooltip("Случайная добавка к высоте, чтобы цифры не выстроились в ряд")]
+        [SerializeField] private float randomYOffset = 0.24f;
+        
+        [Header("Critical")]
+        [SerializeField] private Color critColor = new Color(1f, 0.85f, 0.2f);
 
-        // ��������� XZ ��������
-        start += new Vector3(
-            Random.Range(-spreadXZ, spreadXZ),
-            0f,
-            Random.Range(-spreadXZ, spreadXZ)
-        );
+        [Tooltip("Во сколько раз крит крупнее обычного урона")]
+        [SerializeField] private float critScale = 1.35f;
 
-        t.transform.position = start;
-
-        // --- Billboard � ������ ---
-        if (Camera.main)
+        /// <summary>
+        /// Показывает цифру урона.
+        /// </summary>
+        /// <param name="delay">
+        /// Задержка перед появлением. Нужна при множественных попаданиях
+        /// (дробовик): цифры выходят очередью, а не одной кляксой.
+        /// </param>
+        public void Pop(float damage, Vector3 worldPoint, bool crit, float delay = 0f)
         {
-            Transform cam = Camera.main.transform;
-            Vector3 lookDir = t.transform.position - cam.position;
-            t.transform.rotation = Quaternion.LookRotation(lookDir, Vector3.up);
+            if (!popupPrefab)
+                return;
+
+            TMP_Text t = Instantiate(popupPrefab);
+            t.text = damage.ToString("0");
+
+            // Цвет и размер задаём ДО чтения t.color —
+            // ниже он берётся как целевой для fade-in
+            if (crit)
+                t.color = critColor;
+
+            float scale = crit ? critScale : 1f;
+
+            Vector3 start = BuildStartPosition(worldPoint);
+            t.transform.position = start;
+
+            FaceCamera(t.transform);
+
+            Color visible = t.color;
+            Color faded = visible;
+            faded.a = 0f;
+
+            t.transform.localScale = Vector3.one * scale;
+
+            // Прячем на время задержки, иначе все цифры мигнут сразу
+            if (delay > 0f)
+                t.color = faded;
+
+            Vector3 end = start + Vector3.up * rise;
+            float punch = (crit ? 0.28f : 0.18f) * scale;
+
+            Sequence s = DOTween.Sequence();
+
+            if (delay > 0f)
+            {
+                s.AppendInterval(delay);
+                s.Append(t.DOColor(visible, 0.04f));
+            }
+
+            // Punch внутри последовательности, иначе он сыграет
+            // сразу, ещё до окончания задержки
+            s.Append(t.transform.DOPunchScale(Vector3.one * punch, 0.18f, 10, 0.9f));
+
+            s.Join(t.transform.DOMove(end, lifeTime).SetEase(Ease.OutQuad));
+            s.Join(t.DOColor(faded, lifeTime).SetEase(Ease.InQuad));
+
+            s.OnComplete(() => Destroy(t.gameObject));
         }
 
-        // --- ������ ---
-        Color c0 = t.color;
-        Color c1 = c0;
-        c1.a = 0f;
+        private Vector3 BuildStartPosition(Vector3 worldPoint)
+        {
+            float yOffset = baseYOffset + Random.Range(0f, randomYOffset);
 
-        float punch = crit ? 0.28f : 0.18f;
+            Vector3 start = worldPoint + Vector3.up * yOffset;
 
-        t.transform.localScale = Vector3.one;
-        t.transform.DOPunchScale(Vector3.one * punch, 0.18f, 10, 0.9f);
+            start += new Vector3(
+                Random.Range(-spreadXZ, spreadXZ),
+                0f,
+                Random.Range(-spreadXZ, spreadXZ));
 
-        Vector3 end = start + Vector3.up * rise;
+            return start;
+        }
 
-        Sequence s = DOTween.Sequence();
-        s.Join(t.transform.DOMove(end, lifeTime).SetEase(Ease.OutQuad));
-        s.Join(t.DOColor(c1, lifeTime).SetEase(Ease.InQuad));
-        s.OnComplete(() => Destroy(t.gameObject));
+        private static void FaceCamera(Transform t)
+        {
+            Camera cam = Camera.main;
+            if (cam == null)
+                return;
+
+            Vector3 lookDir = t.position - cam.transform.position;
+
+            if (lookDir.sqrMagnitude < 0.0001f)
+                return;
+
+            t.rotation = Quaternion.LookRotation(lookDir, Vector3.up);
+        }
     }
 }

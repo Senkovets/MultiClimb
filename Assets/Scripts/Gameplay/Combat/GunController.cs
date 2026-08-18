@@ -66,6 +66,7 @@ namespace Gameplay.Combat
             public float Damage;
             public bool IsCritical;
             public Player Owner;
+            public Vector3 HitPoint;
         }
 
         // =========================================================
@@ -190,18 +191,23 @@ namespace Gameplay.Combat
             Vector3 origin = gunMuzzle.position;
             int shotSeed = BuildShotSeed(Runner.Tick);
  
-            // Один цикл покрывает и пистолет (1 дробина),
-            // и дробовик (8-12 дробин)
-            for (int i = 0; i < weapon.PelletsPerShot; i++)
+            int pellets = Mathf.Max(1, weapon.PelletsPerShot);
+ 
+            // Битовая маска: какие дробины попали в плоть.
+            // Бит i соответствует дробине i. Максимум 16 дробин.
+            ushort fleshMask = 0;
+ 
+            for (int i = 0; i < pellets; i++)
             {
                 int pelletSeed = BuildPelletSeed(shotSeed, i);
                 Vector3 dir = ApplyScatter(baseDir, weapon.ScatterAngleDeg, pelletSeed);
  
-                FireSinglePellet_Server(origin, dir, weapon, input.IsCriticalAim, i == 0);
+                if (FireSinglePellet_Server(origin, dir, weapon, input.IsCriticalAim) && i < 16)
+                    fleshMask |= (ushort)(1 << i);
             }
  
-            // FX выброса гильзы и вспышки — один раз на выстрел,
-            // а не на каждую дробину
+            // ОДИН RPC на весь залп
+            RPC_SpawnShotConfirmed(origin, baseDir, shotSeed, fleshMask);
             RPC_EjectShell();
             RPC_MuzzleFx();
         }
@@ -210,37 +216,41 @@ namespace Gameplay.Combat
         /// Один луч. spawnTracer=false для дробин кроме первой,
         /// иначе 8 дробин = 8 RPC и трафик улетает.
         /// </summary>
-        private void FireSinglePellet_Server(
+        /// <summary>
+        /// Один луч. Возвращает true если попал в плоть —
+        /// нужно для маски в RPC.
+        /// </summary>
+        private bool FireSinglePellet_Server(
             Vector3 origin,
             Vector3 dir,
             WeaponConfig weapon,
-            bool isCritical,
-            bool spawnTracer)
+            bool isCritical)
         {
             ResolveServerHit(origin, dir, weapon,
                 out Vector3 endPoint,
                 out NetworkObject targetObj);
  
+            if (targetObj == null || !targetObj.IsValid)
+                return false;
+ 
+            if (!targetObj.TryGetComponent<NetworkHealth>(out _))
+                return false;
+ 
             float dist = Vector3.Distance(origin, endPoint);
             int travelTicks = DistanceToTravelTicks(dist, weapon.BulletSpeed);
- 
-            bool hitFlesh = targetObj != null && targetObj.TryGetComponent<NetworkHealth>(out _);
- 
-            if (spawnTracer)
-                RPC_SpawnTracerConfirmed(origin, endPoint, travelTicks, hitFlesh, -dir);
- 
-            if (targetObj == null || !targetObj.IsValid)
-                return;
  
             _pending.Add(new PendingDamage
             {
                 Timer = TickTimer.CreateFromTicks(Runner, travelTicks),
                 Target = targetObj,
-                Damage = weapon.GetDamageAtDistance(dist),   // falloff здесь
+                Damage = weapon.GetDamageAtDistance(dist),
                 IsCritical = isCritical,
                 CriticalMultiplier = weapon.CriticalMultiplier,
+                HitPoint = endPoint,
                 Owner = player
             });
+ 
+            return true;
         }
  
         /// <summary>
@@ -586,25 +596,7 @@ namespace Gameplay.Combat
         // =========================================================
         // RPC — подтверждённые FX для всех КРОМЕ стрелка
         // =========================================================
-
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void RPC_SpawnTracerConfirmed(
-            Vector3 start, Vector3 end, int travelTicks, bool hitFlesh, Vector3 hitNormal)
-        {
-            // Стрелок уже видел локальный предсказанный трейсер
-            if (HasInputAuthority)
-                return;
-
-            if (tracerPrefab == null || Runner == null)
-                return;
-
-            float duration = Mathf.Max(0.02f, travelTicks / (float)Runner.TickRate);
-
-            TracerFx fx = Instantiate(tracerPrefab);
-            fx.Play(start, end, duration);
-            fx.SetImpact(hitFlesh, hitNormal);
-        }
-
+       
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
         private void RPC_EjectShell()
         {
@@ -650,6 +642,68 @@ namespace Gameplay.Combat
 
             dir = raw.normalized;
             return true;
+        }
+        
+        /// <summary>
+        /// Подтверждённый залп для всех КРОМЕ стрелка.
+        /// Наблюдатель сам считает дробины по seed — это дешевле
+        /// чем слать 9 отдельных RPC.
+        /// </summary>
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void RPC_SpawnShotConfirmed(
+            Vector3 origin, Vector3 baseDir, int shotSeed, ushort fleshMask)
+        {
+            // Стрелок уже видел свой локальный залп
+            if (HasInputAuthority)
+                return;
+ 
+            if (tracerPrefab == null || Runner == null)
+                return;
+ 
+            // Оружие берём из синхронизированного инвентаря —
+            // наблюдатель знает чем стреляли
+            WeaponConfig weapon = Weapon;
+            if (weapon == null)
+                return;
+ 
+            int pellets = Mathf.Max(1, weapon.PelletsPerShot);
+ 
+            for (int i = 0; i < pellets; i++)
+            {
+                int pelletSeed = BuildPelletSeed(shotSeed, i);
+                Vector3 dir = ApplyScatter(baseDir, weapon.ScatterAngleDeg, pelletSeed);
+ 
+                bool hitFlesh = i < 16 && (fleshMask & (1 << i)) != 0;
+ 
+                SpawnObservedTracer(origin, dir, weapon, hitFlesh);
+            }
+        }
+        
+        /// <summary>
+        /// Трасса у наблюдателя. Конец ищем локальным рейкастом —
+        /// это косметика, точность до сантиметра не нужна.
+        /// </summary>
+        private void SpawnObservedTracer(
+            Vector3 origin, Vector3 dir, WeaponConfig weapon, bool hitFlesh)
+        {
+            Vector3 end = origin + dir * weapon.MaxDistance;
+            float distance = weapon.MaxDistance;
+            Vector3 normal = -dir;
+ 
+            if (Physics.Raycast(origin, dir, out RaycastHit hit,
+                    weapon.MaxDistance, hitLayers,
+                    QueryTriggerInteraction.Ignore))
+            {
+                end = hit.point;
+                distance = hit.distance;
+                normal = hit.normal;
+            }
+ 
+            float travelTime = Mathf.Max(0.02f, distance / Mathf.Max(0.001f, weapon.BulletSpeed));
+ 
+            TracerFx fx = Instantiate(tracerPrefab);
+            fx.Play(origin, end, travelTime);
+            fx.SetImpact(hitFlesh, normal);
         }
 
         private int DistanceToTravelTicks(float distance, float bulletSpeed)
