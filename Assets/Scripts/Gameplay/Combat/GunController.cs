@@ -49,13 +49,6 @@ namespace Gameplay.Combat
                  "подтверждению сервера — клиент не решает попал ли он.")]
         [SerializeField] private GameObject fleshImpactPrefab;
 
-        [Header("Local Tracer")]
-        [Tooltip("Сферный каст для КОНЦА трассы, чтобы она не проходила " +
-                 "сквозь тонкую геометрию. На урон не влияет.")]
-        [SerializeField] private bool localTracerUseSpherecast = true;
-
-        [SerializeField] private float localTracerRadius = 0.06f;
-
         [Header("Recoil")]
         [SerializeField] private RecoilPatternApplier recoilPattern;
 
@@ -87,8 +80,6 @@ namespace Gameplay.Combat
         // =========================================================
         // Доступ к характеристикам оружия
         // =========================================================
-
-        public Transform Muzzle => gunMuzzle;
 
         private WeaponConfig Weapon => inventory != null ? inventory.CurrentWeapon : null;
 
@@ -262,8 +253,6 @@ namespace Gameplay.Combat
             }
  
             RPC_SpawnShotConfirmed(origin, baseDir, shotSeed, fleshMask);
-            RPC_EjectShell();
-            RPC_MuzzleFx();
         }
 
         /// <summary>
@@ -456,78 +445,7 @@ namespace Gameplay.Combat
             fx.Play(origin, end, travelTime);
             fx.SetImpact(isFlesh, normal);
         }
-
-        /// <summary>
-        /// Трасса у стрелка. Визуально выходит из gunMuzzle, хотя расчёт
-        /// идёт от firePoint — разница в пару сантиметров незаметна.
-        ///
-        /// hitFlesh всегда false: клиент НЕ решает попал ли он в плоть.
-        /// Кровь приходит от сервера через RPC_SpawnShotConfirmed.
-        /// </summary>
-        private void SpawnLocalTracer(Vector3 dir, WeaponConfig weapon)
-        {
-            Vector3 start = gunMuzzle.position;
-            Vector3 end = start + dir * weapon.MaxDistance;
-            float distance = weapon.MaxDistance;
-            Vector3 hitNormal = -dir;
-
-            float radius = localTracerUseSpherecast ? localTracerRadius : 0f;
-
-            if (TryFindNearestForeignHit(start, dir, weapon.MaxDistance, radius,
-                                         out RaycastHit best))
-            {
-                end = best.point;
-                distance = best.distance;
-                hitNormal = best.normal;
-            }
-
-            float travelTime = Mathf.Max(0.02f, distance / Mathf.Max(0.001f, weapon.BulletSpeed));
-
-            TracerFx fx = Instantiate(tracerPrefab);
-            fx.Play(start, end, travelTime);
-            fx.SetImpact(false, hitNormal);
-        }
-
-        /// <summary>
-        /// Ближайшее попадание, не принадлежащее самому стрелку.
-        /// radius = 0 даёт тонкий луч, radius > 0 — сферный каст.
-        /// </summary>
-        private bool TryFindNearestForeignHit(
-            Vector3 start, Vector3 dir, float maxDistance, float radius,
-            out RaycastHit best)
-        {
-            best = default;
-
-            RaycastHit[] hits = radius > 0f
-                ? Physics.SphereCastAll(start, radius, dir, maxDistance,
-                                        hitLayers, QueryTriggerInteraction.Ignore)
-                : Physics.RaycastAll(start, dir, maxDistance,
-                                     hitLayers, QueryTriggerInteraction.Ignore);
-
-            Transform ownRoot = player != null ? player.transform : transform.root;
-
-            float bestDist = float.MaxValue;
-            bool found = false;
-
-            foreach (RaycastHit h in hits)
-            {
-                if (h.collider == null)
-                    continue;
-
-                if (h.collider.transform.IsChildOf(ownRoot))
-                    continue;
-
-                if (h.distance >= bestDist)
-                    continue;
-
-                bestDist = h.distance;
-                best = h;
-                found = true;
-            }
-
-            return found;
-        }
-
+        
         private void SpawnMuzzleFx()
         {
             if (muzzleFxPrefab == null)
@@ -602,6 +520,16 @@ namespace Gameplay.Combat
                     SpawnObservedTracer(origin, dir, weapon, hitFlesh);
                 }
             }
+
+            // Гильза и вспышка — здесь же, а не отдельными RPC.
+            // Стрелок их уже сделал локально в PlayLocalShotFx.
+            if (isShooter)
+                return;
+
+            if (shellEmitter != null)
+                shellEmitter.Emit(1);
+
+            SpawnMuzzleFx();
         }
 
         /// <summary>
@@ -651,24 +579,7 @@ namespace Gameplay.Combat
             fx.SetImpact(hitFlesh, normal);   // от сервера
         }
 
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void RPC_EjectShell()
-        {
-            if (HasInputAuthority || Runner == null)
-                return;
-
-            if (shellEmitter != null)
-                shellEmitter.Emit(1);
-        }
-
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void RPC_MuzzleFx()
-        {
-            if (HasInputAuthority || Runner == null)
-                return;
-
-            SpawnMuzzleFx();
-        }
+        
 
         // =========================================================
         // Направление, тайминг, разброс
