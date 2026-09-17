@@ -1,3 +1,4 @@
+using _Project.CodeBase.Weapons;
 using Fusion;
 using Fusion.Addons.KCC;
 using Gameplay.Combat;
@@ -27,7 +28,10 @@ public class Player : NetworkBehaviour
     private InputManager inputManager;
     private Vector3 _moveDirection;
 
-    public GameObject HeadColider; 
+    public GameObject HeadColider;
+    
+    // Новое поле рядом с остальными
+    private WeaponInventory weaponInventory;
 
     //-----------------------------------------------
 
@@ -53,6 +57,7 @@ public class Player : NetworkBehaviour
     public override void Spawned()
     {
         Health = GetComponent<NetworkHealth>();
+        weaponInventory = GetComponent<WeaponInventory>();
 
         var bar = GetComponentInChildren<HealthBar>(true);
         bar.Init(Health);
@@ -132,8 +137,6 @@ public class Player : NetworkBehaviour
         // 1. Стандартная логика для Unity (визуал и обычные лучи)
         SetLayerRecursively(transform, targetLayer);
 
-        
-
         if (modelParts != null)
         {
             foreach (var part in modelParts)
@@ -145,6 +148,13 @@ public class Player : NetworkBehaviour
             foreach (var can in сanvas)
                 if (can != null) can.enabled = IsVisible;
         }
+
+        // Модель оружия создаётся в рантайме через Instantiate,
+        // в modelParts не попадает — гасим отдельно
+        if (weaponInventory == null)
+            weaponInventory = GetComponent<WeaponInventory>();
+
+        weaponInventory?.SetViewVisible(IsVisible);
 
         // 2. Сетевые хитбоксы (Lag Compensation)
         var hbRoot = GetComponent<HitboxRoot>();

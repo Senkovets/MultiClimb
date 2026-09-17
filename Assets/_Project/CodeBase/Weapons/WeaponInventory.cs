@@ -28,6 +28,8 @@ namespace _Project.CodeBase.Weapons
         /// <summary>Патроны в слоте 1</summary>
         [Networked, OnChangedRender(nameof(OnInventoryChanged))] 
         public int SecondaryAmmo { get; private set; }
+        
+        private Player _owner;
  
         // ---- Локальное ----
  
@@ -54,6 +56,16 @@ namespace _Project.CodeBase.Weapons
                 return -1;
  
             return slot == 1 ? SecondaryAmmo : 0;
+        }
+        
+        /// <summary>
+        /// Показать или скрыть модель оружия в руках.
+        /// Вызывается из Player при смерти и респавне.
+        /// </summary>
+        public void SetViewVisible(bool visible)
+        {
+            if (_currentView != null)
+                _currentView.SetActive(visible);
         }
         
         
@@ -97,6 +109,7 @@ namespace _Project.CodeBase.Weapons
  
         public override void Spawned()
         {
+            _owner = GetComponent<Player>();
             if (HasStateAuthority)
             {
                 ActiveSlot = 0;
@@ -210,25 +223,34 @@ namespace _Project.CodeBase.Weapons
         {
             WeaponConfig w = CurrentWeapon;
             byte id = w != null ? w.WeaponId : (byte)0;
- 
+
             if (id == _lastViewedWeaponId)
                 return;
- 
+
             _lastViewedWeaponId = id;
- 
+
             if (_currentView != null)
             {
                 Destroy(_currentView);
                 _currentView = null;
             }
- 
+
             if (w == null || w.ViewPrefab == null || weaponViewRoot == null)
                 return;
- 
+
             _currentView = Instantiate(w.ViewPrefab, weaponViewRoot);
             _currentView.transform.localPosition = Vector3.zero;
             _currentView.transform.localRotation = Quaternion.identity;
- 
+
+            // Если игрок мёртв, новая модель не должна появиться на трупе.
+            // Это бывает: смерть сбрасывает оружие на пистолет, и RefreshView
+            // создаёт модель уже после того как Player всё погасил.
+            if (_owner == null)
+                _owner = GetComponent<Player>();
+
+            if (_owner != null && !_owner.IsVisible)
+                _currentView.SetActive(false);
+
             // Прицел меняем только у локального игрока
             if (HasInputAuthority && w.AimMarker != null)
                 AimMarkerManager.Instance?.SwitchPreset(w.AimMarker);
