@@ -549,10 +549,6 @@ namespace Gameplay.Combat
             fx.Play(start, end, travelTime);
             fx.SetImpact(hitFlesh, hitNormal);
 
-            if (shellEmitter != null)
-                shellEmitter.Emit(1);
-
-            SpawnMuzzleFx();
         }
 
         /// <summary>
