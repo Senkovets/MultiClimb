@@ -43,6 +43,18 @@ namespace Gameplay.Combat
 
         [Header("Recoil")]
         [SerializeField] private RecoilPatternApplier recoilPattern;
+        
+        [Header("Weapon Switch")]
+        [Tooltip("Задержка перед первым выстрелом после смены оружия, сек")]
+        [SerializeField] private float switchDelay = 0.25f;
+ 
+        /// <summary>
+        /// После смены оружия ждём отпускания кнопки.
+        /// Иначе зажатая мышь выстрелит новым оружием сама.
+        /// </summary>
+        private bool _awaitFireRelease;
+        
+        [Networked] private byte LastServerWeaponId { get; set; }
 
         // ---- Networked ----
 
@@ -130,6 +142,7 @@ namespace Gameplay.Combat
         {
             if (!HasStateAuthority)
                 return;
+
             // Отложенный урон обрабатываем всегда, даже если игрок мёртв:
             // пули выпущенные до смерти должны долететь.
             ProcessPendingDamage();
@@ -141,15 +154,22 @@ namespace Gameplay.Combat
                 return;
 
             WeaponConfig weapon = Weapon;
-            
-            WeaponConfig dbgWeapon = Weapon;
-
-            if (input.Buttons.Bits != 0)
-                Debug.Log($"[Server] bits={input.Buttons.Bits} " +
-                          $"fire={input.Buttons.IsSet((int)InputButton.Fire)}");
-            
             if (weapon == null)
                 return;
+
+            // Смена оружия: выдерживаем задержку и гасим зажатую кнопку.
+            // PreviousButtons = input.Buttons делает так, что WasPressed
+            // не сработает — то есть зажатая мышь не выстрелит сама.
+            if (weapon.WeaponId != LastServerWeaponId)
+            {
+                LastServerWeaponId = weapon.WeaponId;
+
+                int delayTicks = Mathf.CeilToInt(switchDelay * Runner.TickRate);
+                NextFireTick = Mathf.Max(NextFireTick, Runner.Tick + delayTicks);
+
+                PreviousButtons = input.Buttons;
+                return;
+            }
 
             bool wantFire = ReadFireIntent(input, weapon.FireMode);
             PreviousButtons = input.Buttons;
@@ -163,8 +183,9 @@ namespace Gameplay.Combat
             if (!inventory.HasAmmoForCurrent)
                 return;
 
-            if (locomotion != null && !locomotion.CanFire) return;
-            
+            if (locomotion != null && !locomotion.CanFire)
+                return;
+
             FireHitscan_Server(input, weapon);
             inventory.ConsumeAmmo(1);
 
@@ -389,79 +410,93 @@ namespace Gameplay.Combat
         /// Остальные получают трассу через RPC_SpawnTracerConfirmed.
         /// </summary>
         public override void Render()
-        {
-            // Только стрелок предсказывает свои выстрелы
-            if (!HasInputAuthority)
-                return;
- 
-            if (player == null || player.IsDead)
-                return;
- 
-            if (Runner == null || tracerPrefab == null || gunMuzzle == null)
-                return;
- 
-            if (locomotion != null && !locomotion.CanFire) return;
-            
-            WeaponConfig weapon = Weapon;
-            if (weapon == null)
-                return;
-            
-            if (weapon.WeaponId != _lastSeenWeaponId)
-            {
-                _lastSeenWeaponId = weapon.WeaponId;
-                _localNextFireTick = 0;
-                _nextLocalFxTick = -1;
-            }
- 
-            InputManager im = Runner.GetComponent<InputManager>();
-            if (im == null)
-                return;
- 
-            NetInput input = im.LastLocalInput;
- 
-            // Кнопка отпущена — сбрасываем цикл, чтобы Semi/Bolt
-            // могли выстрелить снова при следующем нажатии
-            if (!input.Buttons.IsSet((int)InputButton.Fire))
-            {
-                _nextLocalFxTick = -1;
-                return;
-            }
- 
-            if (inventory == null || !inventory.HasAmmoForCurrent)
-                return;
- 
-            if (!ShouldSpawnLocalFxThisTick(weapon, out int tick))
-                return;
- 
-            if (!TryGetFireDirection(input, out Vector3 baseDir))
-                return;
- 
-            // Seed выстрела ОБЯЗАН совпадать с серверным на этом тике,
-            // иначе предсказанные трассы разойдутся с реальными попаданиями
-            int shotSeed = BuildShotSeed(tick);
- 
-            // Локально рисуем ВСЕ дробины: это не сеть, это дёшево.
-            // Сервер по RPC отправит только одну трассу.
-            int pellets = Mathf.Max(1, weapon.PelletsPerShot);
- 
-            for (int i = 0; i < pellets; i++)
-            {
-                int pelletSeed = BuildPelletSeed(shotSeed, i);
-                Vector3 pelletDir = ApplyScatter(baseDir, weapon.ScatterAngleDeg, pelletSeed);
- 
-                SpawnLocalPredictedTracer(pelletDir, weapon);
-            }
- 
-            // Гильза и вспышка — один раз на выстрел, а не на дробину
-            if (shellEmitter != null)
-                shellEmitter.Emit(1);
- 
-            SpawnMuzzleFx();
- 
-            ApplyRecoil(weapon, shotSeed);
- 
-            AimMarkerManager.Instance?.OnShoot();
-        }
+{
+    // Только стрелок предсказывает свои выстрелы
+    if (!HasInputAuthority)
+        return;
+
+    if (player == null || player.IsDead)
+        return;
+
+    if (Runner == null || tracerPrefab == null || gunMuzzle == null)
+        return;
+
+    WeaponConfig weapon = Weapon;
+    if (weapon == null)
+        return;
+
+    InputManager im = Runner.GetComponent<InputManager>();
+    if (im == null)
+        return;
+
+    NetInput input = im.LastLocalInput;
+
+    // Блок смены оружия ДО всех остальных проверок, кроме получения
+    // input: иначе при спринте или пустом магазине мы до него
+    // не дойдём, _lastSeenWeaponId застрянет, и задержка не сработает.
+    if (weapon.WeaponId != _lastSeenWeaponId)
+    {
+        _lastSeenWeaponId = weapon.WeaponId;
+        _nextLocalFxTick = -1;
+
+        int delayTicks = Mathf.CeilToInt(switchDelay * Runner.TickRate);
+        _localNextFireTick = Runner.Tick + delayTicks;
+
+        // Кнопка зажата в момент смены — ждём отпускания
+        _awaitFireRelease = input.Buttons.IsSet((int)InputButton.Fire);
+    }
+
+    // Кнопка отпущена — сбрасываем цикл, чтобы Semi/Bolt
+    // могли выстрелить снова при следующем нажатии
+    if (!input.Buttons.IsSet((int)InputButton.Fire))
+    {
+        _nextLocalFxTick = -1;
+        _awaitFireRelease = false;
+        return;
+    }
+
+    // Оружие сменилось при зажатой кнопке — молчим до отпускания
+    if (_awaitFireRelease)
+        return;
+
+    if (locomotion != null && !locomotion.CanFire)
+        return;
+
+    if (inventory == null || !inventory.HasAmmoForCurrent)
+        return;
+
+    if (!ShouldSpawnLocalFxThisTick(weapon, out int tick))
+        return;
+
+    if (!TryGetFireDirection(input, out Vector3 baseDir))
+        return;
+
+    // Seed выстрела ОБЯЗАН совпадать с серверным на этом тике,
+    // иначе предсказанные трассы разойдутся с реальными попаданиями
+    int shotSeed = BuildShotSeed(tick);
+
+    // Локально рисуем ВСЕ дробины: это не сеть, это дёшево.
+    // Сервер по RPC отправит только одну трассу.
+    int pellets = Mathf.Max(1, weapon.PelletsPerShot);
+
+    for (int i = 0; i < pellets; i++)
+    {
+        int pelletSeed = BuildPelletSeed(shotSeed, i);
+        Vector3 pelletDir = ApplyScatter(baseDir, weapon.ScatterAngleDeg, pelletSeed);
+
+        SpawnLocalPredictedTracer(pelletDir, weapon);
+    }
+
+    // Гильза и вспышка — один раз на выстрел, а не на дробину
+    if (shellEmitter != null)
+        shellEmitter.Emit(1);
+
+    SpawnMuzzleFx();
+
+    ApplyRecoil(weapon, shotSeed);
+
+    AimMarkerManager.Instance?.OnShoot();
+}
 
         private bool ShouldSpawnLocalFxThisTick(WeaponConfig weapon, out int tick)
         {
