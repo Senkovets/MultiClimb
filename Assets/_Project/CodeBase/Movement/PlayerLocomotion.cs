@@ -1,3 +1,4 @@
+using _Project.CodeBase.Weapons;
 using Fusion;
 using Fusion.Addons.KCC;
 using UnityEngine;
@@ -21,6 +22,9 @@ namespace _Project.CodeBase.Movement
                  "Вращается независимо от KCC — иначе спринт " +
                  "утащит за собой камеру.")]
         [SerializeField] private Transform modelRoot;
+        
+        [Tooltip("Источник смещения ствола для компенсации поворота")]
+        [SerializeField] private WeaponInventory inventory;
  
         // ---- Networked ----
  
@@ -72,6 +76,9 @@ namespace _Project.CodeBase.Movement
  
             if (player == null)
                 player = GetComponent<Player>();
+            
+            if (inventory == null) 
+                inventory = GetComponent<WeaponInventory>();
  
             if (modelRoot == null)
             {
@@ -214,12 +221,16 @@ namespace _Project.CodeBase.Movement
  
             if (State == MoveState.Sprinting && moveDir.sqrMagnitude > 0.01f)
             {
+                // Бежим — корпус по движению. Компенсация не нужна:
+                // в спринте стрелять нельзя.
                 targetYaw = DirectionToYaw(moveDir);
                 turnSpeed = config.SprintTurnSpeed;
             }
             else
             {
-                targetYaw = AimYaw;
+                // Идём или стоим — корпус доворачиваем так, чтобы
+                // ствол лёг на линию прицела
+                targetYaw = GetAimBodyYaw(input.AimPoint);
  
                 if (isAiming)
                     turnSpeed = config.AimTurnSpeed;
@@ -231,6 +242,21 @@ namespace _Project.CodeBase.Movement
  
             BodyYaw = Mathf.MoveTowardsAngle(BodyYaw, targetYaw, turnSpeed * dt);
             ApplyBodyRotation();
+        }
+ 
+        /// <summary>
+        /// Целевой yaw корпуса с компенсацией смещения ствола.
+        /// </summary>
+        private float GetAimBodyYaw(Vector3 aimPoint)
+        {
+            float lateral = 0f;
+ 
+            WeaponConfig weapon = inventory != null ? inventory.CurrentWeapon : null;
+            if (weapon != null)
+                lateral = weapon.MuzzleLocalOffset.x;
+ 
+            return AimGeometry.GetCompensatedBodyYaw(
+                transform.position, aimPoint, lateral);
         }
  
         private void ApplyBodyRotation()

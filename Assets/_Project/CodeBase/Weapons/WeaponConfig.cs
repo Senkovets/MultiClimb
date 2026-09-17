@@ -75,6 +75,12 @@ namespace _Project.CodeBase.Weapons
         [Tooltip("Модель для точки лута. Если пусто — берётся ViewPrefab.")]
         public GameObject PickupPrefab;
         
+        [Header("Muzzle Offset")]
+        [Tooltip("Позиция ствола в ЛОКАЛЬНЫХ координатах игрока, " +
+                 "когда корпус смотрит вперёд. Измеряется один раз " +
+                 "в инспекторе. X = вбок, Y = высота, Z = вперёд.")]
+        public Vector3 MuzzleLocalOffset = new Vector3(0.35f, 1f, 0.75f);
+        
         /// <summary>
         /// Урон с учётом дистанции. Считается ТОЛЬКО на сервере,
         /// поэтому детерминизм не требуется.
