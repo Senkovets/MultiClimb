@@ -5110,6 +5110,7 @@ MonoBehaviour:
   armorBar: {fileID: 2232809604506557094}
   _CurrentHealth: 0
   _CurrentArmor: 0
+  _MaxArmor: 0
 --- !u!136 &2526720971422132695
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -5236,7 +5237,6 @@ MonoBehaviour:
   player: {fileID: 7227464116718632667}
   locomotion: {fileID: 827388366760364138}
   inventory: {fileID: 2011068435620419907}
-  firePoint: {fileID: 4082478910302123564}
   gunMuzzle: {fileID: 5213955465412507293}
   hitLayers:
     serializedVersion: 2
@@ -5248,8 +5248,6 @@ MonoBehaviour:
     type: 3}
   muzzleFxAnchor: {fileID: 5213955465412507293}
   fleshImpactPrefab: {fileID: 0}
-  localTracerUseSpherecast: 1
-  localTracerRadius: 0.06
   recoilPattern: {fileID: 0}
   switchDelay: 0.25
 --- !u!114 &2011068435620419907
@@ -5285,6 +5283,7 @@ MonoBehaviour:
   kcc: {fileID: 4391075928499431294}
   player: {fileID: 7227464116718632667}
   modelRoot: {fileID: 2667976507861601311}
+  inventory: {fileID: 0}
   _State: 0
   _AimYaw: 0
   _BodyYaw: 0

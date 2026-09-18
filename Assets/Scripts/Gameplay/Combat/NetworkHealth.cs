@@ -1,4 +1,5 @@
 using _Project.CodeBase;
+using _Project.CodeBase.UI;
 using Fusion;
 using UnityEngine;
 
@@ -61,6 +62,8 @@ namespace Gameplay.Combat
         /// <summary>Сколько записей уже проиграно на этом клиенте.</summary>
         private int _shownDamageCount;
  
+        public event System.Action Changed;
+        
         // =========================================================
         // Lifecycle
         // =========================================================
@@ -68,29 +71,39 @@ namespace Gameplay.Combat
         public override void Spawned()
         {
             owner = GetComponent<Player>();
- 
+
             hurtVisual = GetComponentInChildren<HurtVisual>(true);
             damagePopup = GetComponentInChildren<DamagePopupSpawner>(true);
- 
+
             MaxHealth = Mathf.Max(1f, maxHealth);
- 
+
             if (HasStateAuthority)
             {
                 CurrentHealth = MaxHealth;
- 
+
                 // Минимум 1 чтобы не делить на ноль при отрисовке полоски
                 MaxArmor = Mathf.Max(1f, startingArmor);
                 CurrentArmor = startingArmor;
             }
- 
+
             _shownDamageCount = DamageCount;
- 
+
             healthBar?.Init(this);
             armorBar?.Init(this);
- 
+
             armorBar?.SetVisible(CurrentArmor > 0f);
+
+            // Bind ПОСЛЕ инициализации значений, иначе HUD прочитает нули
+            if (HasInputAuthority)
+                VitalsHudController.Instance?.Bind(this);
         }
-        
+
+        public override void Despawned(NetworkRunner runner, bool hasState)
+        {
+            if (HasInputAuthority)
+                VitalsHudController.Instance?.Unbind(this);
+        }
+
         /// <summary>
         /// Восстановить HP. Не превышает MaxHealth, мёртвых не лечит.
         /// </summary>
@@ -225,11 +238,13 @@ namespace Gameplay.Combat
  
         private void OnHealthChanged()
         {
+            Changed?.Invoke();
             healthBar?.UpdateBar();
         }
  
         private void OnArmorChanged()
         {
+            Changed?.Invoke();
             armorBar?.UpdateBar();
             armorBar?.SetVisible(CurrentArmor > 0f);
         }
