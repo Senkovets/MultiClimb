@@ -1,4 +1,3 @@
-using _Project.CodeBase.Weapons;
 using UnityEngine;
 
 namespace _Project.CodeBase.PickupBase
@@ -9,9 +8,10 @@ namespace _Project.CodeBase.PickupBase
         [System.Serializable]
         public struct Entry
         {
-            public WeaponConfig Weapon;
+            [Tooltip("Любой PickupItem: оружие, броня, аптечка")]
+            public PickupItem Item;
  
-            [Tooltip("Вес, а не процент. Веса 3 и 1 дают шансы 75% и 25%.")]
+            [Tooltip("Вес, а не процент. Веса 3 и 1 дают 75% и 25%.")]
             [Min(0f)]
             public float Weight;
         }
@@ -20,18 +20,17 @@ namespace _Project.CodeBase.PickupBase
  
         public int Count => entries != null ? entries.Length : 0;
  
-        public WeaponConfig GetWeapon(int index)
+        public PickupItem GetItem(int index)
         {
             if (entries == null || index < 0 || index >= entries.Length)
                 return null;
  
-            return entries[index].Weapon;
+            return entries[index].Item;
         }
  
         /// <summary>
         /// Взвешенный случайный выбор. Возвращает индекс записи,
-        /// -1 если таблица пуста или все веса нулевые.
-        /// Вызывается ТОЛЬКО на сервере.
+        /// -1 если таблица пуста. Вызывается ТОЛЬКО на сервере.
         /// </summary>
         public int Roll()
         {
@@ -42,7 +41,7 @@ namespace _Project.CodeBase.PickupBase
  
             foreach (Entry e in entries)
             {
-                if (e.Weapon != null && e.Weight > 0f)
+                if (e.Item != null && e.Weight > 0f)
                     total += e.Weight;
             }
  
@@ -54,7 +53,7 @@ namespace _Project.CodeBase.PickupBase
  
             for (int i = 0; i < entries.Length; i++)
             {
-                if (entries[i].Weapon == null || entries[i].Weight <= 0f)
+                if (entries[i].Item == null || entries[i].Weight <= 0f)
                     continue;
  
                 acc += entries[i].Weight;
@@ -66,7 +65,7 @@ namespace _Project.CodeBase.PickupBase
             // Страховка от погрешности float
             for (int i = entries.Length - 1; i >= 0; i--)
             {
-                if (entries[i].Weapon != null && entries[i].Weight > 0f)
+                if (entries[i].Item != null && entries[i].Weight > 0f)
                     return i;
             }
  
@@ -82,7 +81,7 @@ namespace _Project.CodeBase.PickupBase
             float total = 0f;
             foreach (Entry e in entries)
             {
-                if (e.Weapon != null && e.Weight > 0f)
+                if (e.Item != null && e.Weight > 0f)
                     total += e.Weight;
             }
  

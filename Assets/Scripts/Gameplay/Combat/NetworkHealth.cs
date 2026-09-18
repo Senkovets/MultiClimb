@@ -50,6 +50,8 @@ namespace Gameplay.Combat
         // ---- Local ----
  
         public float MaxHealth { get; private set; }
+        
+        [Networked, OnChangedRender(nameof(OnArmorChanged))]
         public float MaxArmor { get; private set; }
  
         private Player owner;
@@ -72,22 +74,58 @@ namespace Gameplay.Combat
  
             MaxHealth = Mathf.Max(1f, maxHealth);
  
-            // MaxArmor не должен быть 0 — на него делят при отрисовке полоски
-            MaxArmor = Mathf.Max(1f, startingArmor);
- 
             if (HasStateAuthority)
             {
                 CurrentHealth = MaxHealth;
+ 
+                // Минимум 1 чтобы не делить на ноль при отрисовке полоски
+                MaxArmor = Mathf.Max(1f, startingArmor);
                 CurrentArmor = startingArmor;
             }
  
-            // Не проигрываем историю попаданий, случившихся до спавна
             _shownDamageCount = DamageCount;
  
             healthBar?.Init(this);
             armorBar?.Init(this);
  
             armorBar?.SetVisible(CurrentArmor > 0f);
+        }
+        
+        /// <summary>
+        /// Восстановить HP. Не превышает MaxHealth, мёртвых не лечит.
+        /// </summary>
+        public void Heal(float amount)
+        {
+            if (!HasStateAuthority)
+                return;
+ 
+            if (amount <= 0f)
+                return;
+ 
+            // Мёртвого аптечкой не поднять — это задача респавна
+            if (CurrentHealth <= 0f)
+                return;
+ 
+            CurrentHealth = Mathf.Min(MaxHealth, CurrentHealth + amount);
+        }
+ 
+        /// <summary>
+        /// Надеть броню. Заменяет текущую целиком: максимум и
+        /// значение становятся равны amount.
+        ///
+        /// Проверку "стоит ли надевать" делает ArmorPickupItem —
+        /// здесь только применение.
+        /// </summary>
+        public void GrantArmor(float amount)
+        {
+            if (!HasStateAuthority)
+                return;
+ 
+            if (amount <= 0f)
+                return;
+ 
+            MaxArmor = amount;
+            CurrentArmor = amount;
         }
  
         // =========================================================
@@ -174,9 +212,11 @@ namespace Gameplay.Combat
  
             CurrentHealth = MaxHealth;
  
-            // startingArmor, а не MaxArmor: MaxArmor поднят до минимума 1
-            // чтобы не делить на ноль, и для безбронных целей это не 0
+            // Респавн сбрасывает подобранную броню до стартовой
+            MaxArmor = Mathf.Max(1f, startingArmor);
             CurrentArmor = startingArmor;
+ 
+            _shownDamageCount = DamageCount;
         }
  
         // =========================================================

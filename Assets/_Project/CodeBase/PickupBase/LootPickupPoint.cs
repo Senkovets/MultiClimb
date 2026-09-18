@@ -61,6 +61,17 @@ namespace _Project.CodeBase.PickupBase
  
         private const byte NoLoot = 255;
  
+        private PickupItem CurrentItem
+        {
+            get
+            {
+                if (lootTable == null || RolledIndex == NoLoot)
+                    return null;
+ 
+                return lootTable.GetItem(RolledIndex);
+            }
+        }
+        
         public override void Spawned()
         {
             if (visualRoot != null)
@@ -109,8 +120,8 @@ namespace _Project.CodeBase.PickupBase
  
         private void TryPickup()
         {
-            WeaponConfig weapon = CurrentWeapon;
-            if (weapon == null)
+            PickupItem item = CurrentItem;
+            if (item == null)
                 return;
  
             int count = Physics.OverlapSphereNonAlloc(
@@ -127,11 +138,13 @@ namespace _Project.CodeBase.PickupBase
                 if (player == null || player.IsDead)
                     continue;
  
-                WeaponInventory inventory = player.GetComponent<WeaponInventory>();
-                if (inventory == null)
+                // Предмет сам решает можно ли его взять.
+                // Аптечка с полным HP не подбирается — точка
+                // останется ждать того кому она нужна.
+                if (!item.CanGrantTo(player))
                     continue;
  
-                inventory.GiveWeapon(weapon.WeaponId);
+                item.GrantTo(player);
                 Consume();
                 return;
             }
@@ -158,18 +171,7 @@ namespace _Project.CodeBase.PickupBase
         // =========================================================
         // Визуал у всех клиентов
         // =========================================================
- 
-        private WeaponConfig CurrentWeapon
-        {
-            get
-            {
-                if (lootTable == null || RolledIndex == NoLoot)
-                    return null;
- 
-                return lootTable.GetWeapon(RolledIndex);
-            }
-        }
- 
+
         private void OnStateChanged()
         {
             bool wasAvailable = _builtAvailable;
@@ -223,18 +225,14 @@ namespace _Project.CodeBase.PickupBase
  
         private void BuildModel()
         {
-            WeaponConfig weapon = CurrentWeapon;
-            if (weapon == null || visualRoot == null)
+            PickupItem item = CurrentItem;
+            if (item == null || visualRoot == null)
                 return;
  
-            GameObject prefab = weapon.PickupPrefab != null
-                ? weapon.PickupPrefab
-                : weapon.ViewPrefab;
- 
-            if (prefab == null)
+            if (item.PickupPrefab == null)
                 return;
  
-            _currentModel = Instantiate(prefab, visualRoot);
+            _currentModel = Instantiate(item.PickupPrefab, visualRoot);
             _currentModel.transform.localPosition = Vector3.zero;
             _currentModel.transform.localRotation = Quaternion.identity;
         }

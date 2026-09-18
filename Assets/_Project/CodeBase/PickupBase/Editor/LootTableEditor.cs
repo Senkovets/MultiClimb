@@ -19,12 +19,10 @@ namespace _Project.CodeBase.PickupBase.Editor
  
             for (int i = 0; i < table.Count; i++)
             {
-                var weapon = table.GetWeapon(i);
-                string name = weapon != null ? weapon.DisplayName : "(пусто)";
+                PickupItem item = table.GetItem(i);
+                string name = item != null ? item.DisplayName : "(пусто)";
  
-                EditorGUILayout.LabelField(
-                    name,
-                    $"{table.GetChancePercent(i):F1}%");
+                EditorGUILayout.LabelField(name, $"{table.GetChancePercent(i):F1}%");
             }
         }
     }

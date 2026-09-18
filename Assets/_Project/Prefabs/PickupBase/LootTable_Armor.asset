@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d494cffdbfbd0154494356cf5737acbb, type: 3}
-  m_Name: LootTable_Common
+  m_Name: LootTable_Armor
   m_EditorClassIdentifier: 
   entries:
-  - Weapon: {fileID: 11400000, guid: ba3d897a4c68e79429e8d234de6c5cfc, type: 2}
+  - Item: {fileID: 11400000, guid: b171e1a7477e96e4a8f44dff43ab2253, type: 2}
     Weight: 2
-  - Weapon: {fileID: 11400000, guid: 2260e343d55c92247ba6383bd1c74eb1, type: 2}
+  - Item: {fileID: 11400000, guid: 76756be9e97384c4db30622723148f8c, type: 2}
     Weight: 2
-  - Weapon: {fileID: 11400000, guid: 98f1cc0a6e687624eae838cb20517119, type: 2}
+  - Item: {fileID: 11400000, guid: 734f4f4a3ee479c4cb9e120019b02e99, type: 2}
     Weight: 2

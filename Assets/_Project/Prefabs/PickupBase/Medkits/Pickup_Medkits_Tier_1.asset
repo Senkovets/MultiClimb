@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f657abd04c695748ac6dca9411bf881, type: 3}
+  m_Name: Pickup_Medkits_Tier_1
+  m_EditorClassIdentifier: 
+  DisplayName: Medkits_Tier_1
+  PickupPrefab: {fileID: 6221808675411226989, guid: 61a196eb405b511499c39e8d27774892,
+    type: 3}
+  Icon: {fileID: 21300000, guid: 5c584344bd8d85140bf6b13e7d337a78, type: 2}
+  healAmount: 25
