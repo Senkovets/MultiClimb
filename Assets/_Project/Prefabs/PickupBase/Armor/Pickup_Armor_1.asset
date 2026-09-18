@@ -16,4 +16,4 @@ MonoBehaviour:
   PickupPrefab: {fileID: 1166401501986797, guid: 8d551fb69bf61554d8d9820cadbc15ca,
     type: 3}
   Icon: {fileID: 21300000, guid: 933ee867a5b13544ca2f4782f4bdc971, type: 3}
-  armorAmount: 100
+  armor: {fileID: 11400000, guid: c560df03b44f05c4782e78dd91d3a062, type: 2}

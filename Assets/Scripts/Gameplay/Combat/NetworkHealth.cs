@@ -18,7 +18,7 @@ namespace Gameplay.Combat
         [SerializeField] private float maxHealth = 100f;
  
         [Tooltip("Стартовая броня. 0 = без брони (для манекенов).")]
-        [SerializeField] private float startingArmor = 100f;
+        [SerializeField] private float startingArmor = 0f;
  
         [Header("Popup Feedback")]
         [Tooltip("Задержка между цифрами при множественном попадании. " +
@@ -47,13 +47,15 @@ namespace Gameplay.Combat
         /// </summary>
         [Networked, OnChangedRender(nameof(OnDamageEvent))]
         private int DamageCount { get; set; }
+        
+        [Networked, OnChangedRender(nameof(OnArmorChanged))]
+        public float MaxArmor { get; private set; }
  
         // ---- Local ----
  
         public float MaxHealth { get; private set; }
         
-        [Networked, OnChangedRender(nameof(OnArmorChanged))]
-        public float MaxArmor { get; private set; }
+        
  
         private Player owner;
         private HurtVisual hurtVisual;
@@ -225,9 +227,11 @@ namespace Gameplay.Combat
  
             CurrentHealth = MaxHealth;
  
-            // Респавн сбрасывает подобранную броню до стартовой
             MaxArmor = Mathf.Max(1f, startingArmor);
             CurrentArmor = startingArmor;
+ 
+            // Подобранная броня не переносится через смерть
+            GetComponent<_Project.CodeBase.Armor.PlayerArmor>()?.Unequip();
  
             _shownDamageCount = DamageCount;
         }

@@ -1,6 +1,8 @@
+using _Project.CodeBase.Armor;
 using Gameplay.Combat;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace _Project.CodeBase.UI
 {
@@ -20,6 +22,8 @@ namespace _Project.CodeBase.UI
 
         [SerializeField] private VitalsBar armorBar;
         [SerializeField] private TextMeshProUGUI armorText;
+        
+        private PlayerArmor _boundArmor;
 
         private NetworkHealth _bound;
 
@@ -58,6 +62,13 @@ namespace _Project.CodeBase.UI
 
             _bound = health;
             _bound.Changed += OnVitalsChanged;
+            
+            _boundArmor = health.GetComponent<PlayerArmor>();
+            if (_boundArmor != null)
+            {
+                _boundArmor.Changed += RefreshArmorColor;
+                RefreshArmorColor();
+            }
 
             _lastHealth = _bound.CurrentHealth;
             _lastArmor = _bound.CurrentArmor;
@@ -77,6 +88,12 @@ namespace _Project.CodeBase.UI
 
         private void UnbindInternal()
         {
+            if (_boundArmor != null)
+            {
+                _boundArmor.Changed -= RefreshArmorColor;
+                _boundArmor = null;
+            }
+
             if (_bound == null)
                 return;
 
@@ -88,6 +105,16 @@ namespace _Project.CodeBase.UI
         {
             if (panelRoot != null)
                 panelRoot.SetActive(visible);
+        }
+        
+        private void RefreshArmorColor()
+        {
+            if (armorBar == null || _boundArmor == null)
+                return;
+
+            ArmorConfig c = _boundArmor.Current;
+            if (c != null)
+                armorBar.SetFillColor(c.BarColor);
         }
 
         // ---- Обновление ----

@@ -163,5 +163,12 @@ namespace _Project.CodeBase.UI
             c.a = 0f;
             blinkOverlay.color = c;
         }
+        
+        /// <summary>Цвет заполнения. Используется для цвета тира брони.</summary>
+        public void SetFillColor(Color color)
+        {
+            if (fill != null)
+                fill.color = color;
+        }
     }
 }

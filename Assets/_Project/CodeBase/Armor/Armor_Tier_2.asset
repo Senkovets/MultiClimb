@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06dc328c9119ca5458168585404dc603, type: 3}
+  m_Name: Armor_Tier_2
+  m_EditorClassIdentifier: 
+  ArmorId: 2
+  DisplayName: Armor_Tier_2
+  ArmorAmount: 200
+  SpeedMultiplier: 0.8
+  WornPrefab: {fileID: 1166401501986797, guid: 94b510a30b2b3b24aa4fc76de051d597, type: 3}
+  Icon: {fileID: 0}
+  BarColor: {r: 0.10980393, g: 0.16470589, b: 0.7607844, a: 1}

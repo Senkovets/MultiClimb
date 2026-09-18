@@ -1,4 +1,4 @@
-using Gameplay.Combat;
+using _Project.CodeBase.Armor;
 using UnityEngine;
 
 namespace _Project.CodeBase.PickupBase
@@ -7,29 +7,29 @@ namespace _Project.CodeBase.PickupBase
     public class ArmorPickupItem : PickupItem
     {
         [Header("Armor")]
-        [Tooltip("Сколько защиты даёт. Лёгкая 100, средняя 200, тяжёлая 300.")]
-        [Min(1f)]
-        [SerializeField] private float armorAmount = 100f;
+        [Tooltip("Какую броню выдать")]
+        [SerializeField] private ArmorConfig armor;
  
         public override bool CanGrantTo(Player player)
         {
-            NetworkHealth health = player.GetComponent<NetworkHealth>();
-            if (health == null)
+            if (armor == null)
                 return false;
  
-            // Правило: подбираем если даёт БОЛЬШЕ чем есть сейчас.
-            //
-            // Это покрывает два случая одной строкой:
-            //   тяжёлая поверх лёгкой   — да, апгрейд
-            //   лёгкая поверх тяжёлой   — нет, не тратим впустую
-            //   такая же поверх побитой — да, это ремонт
-            return armorAmount > health.CurrentArmor;
+            PlayerArmor playerArmor = player.GetComponent<PlayerArmor>();
+            if (playerArmor == null)
+                return false;
+ 
+            // Решение принимает PlayerArmor — он знает и реестр,
+            // и текущее состояние брони
+            return playerArmor.IsUpgrade(armor.ArmorId);
         }
  
         public override void GrantTo(Player player)
         {
-            NetworkHealth health = player.GetComponent<NetworkHealth>();
-            health?.GrantArmor(armorAmount);
+            if (armor == null)
+                return;
+ 
+            player.GetComponent<PlayerArmor>()?.Equip(armor.ArmorId);
         }
     }
 }

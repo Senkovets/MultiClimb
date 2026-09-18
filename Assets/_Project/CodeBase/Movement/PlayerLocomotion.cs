@@ -1,3 +1,4 @@
+using _Project.CodeBase.Armor;
 using _Project.CodeBase.Weapons;
 using Fusion;
 using Fusion.Addons.KCC;
@@ -25,6 +26,7 @@ namespace _Project.CodeBase.Movement
         
         [Tooltip("Источник смещения ствола для компенсации поворота")]
         [SerializeField] private WeaponInventory inventory;
+        [SerializeField] private PlayerArmor playerArmor;
  
         // ---- Networked ----
  
@@ -86,6 +88,9 @@ namespace _Project.CodeBase.Movement
                                "Спринт будет вращать камеру.", this);
                 modelRoot = transform;
             }
+            
+            if (playerArmor == null)
+                playerArmor = GetComponent<PlayerArmor>();
         }
  
         // =========================================================
@@ -96,24 +101,25 @@ namespace _Project.CodeBase.Movement
         {
             if (config == null)
                 return;
- 
-            if (player != null && player.IsDead)
-            {
-                kcc.SetInputDirection(Vector3.zero);
-                return;
-            }
- 
+
             if (!GetInput(out NetInput input))
                 return;
- 
+
+            if (player != null && player.IsDead)
+            {
+                SmoothedMoveDir = Vector3.zero;
+                kcc.SetInputDirection(Vector3.zero);
+                PreviousButtons = input.Buttons;
+                return;
+            }
+
             float dt = Runner.DeltaTime;
- 
+
             UpdateState(input);
             UpdateAimYaw(input, dt);
             UpdateMovement(input, dt);
             UpdateBodyYaw(input, dt);
-            
- 
+
             PreviousButtons = input.Buttons;
         }
  
@@ -309,6 +315,7 @@ namespace _Project.CodeBase.Movement
             // ↑↑↑ КОНЕЦ ИЗМЕНЕНИЯ ↑↑↑
 
             kcc.SetInputDirection(SmoothedMoveDir);
+            
         }
 
         /// <summary>
@@ -336,13 +343,22 @@ namespace _Project.CodeBase.Movement
  
         private float GetSpeedMultiplier(NetInput input)
         {
+            float m;
+ 
             if (State == MoveState.Sprinting)
-                return 1f;
+            {
+                m = 1f;
+            }
+            else
+            {
+                m = config.WalkSpeed / Mathf.Max(0.01f, config.SprintSpeed);
  
-            float m = config.WalkSpeed / Mathf.Max(0.01f, config.SprintSpeed);
+                if (input.Buttons.IsSet((int)InputButton.Aim))
+                    m *= config.AimSpeedMultiplier;
+            }
  
-            if (input.Buttons.IsSet((int)InputButton.Aim))
-                m *= config.AimSpeedMultiplier;
+            if (playerArmor != null)
+                m *= playerArmor.SpeedMultiplier;
  
             return m;
         }

@@ -155,6 +155,9 @@ public class Player : NetworkBehaviour
             weaponInventory = GetComponent<WeaponInventory>();
 
         weaponInventory?.SetViewVisible(IsVisible);
+        
+        GetComponent<_Project.CodeBase.Armor.PlayerArmor>()
+            ?.SetModelVisible(IsVisible);
 
         // 2. Сетевые хитбоксы (Lag Compensation)
         var hbRoot = GetComponent<HitboxRoot>();
